@@ -67,7 +67,7 @@
             </div>
         </div>
 
-        <!-- Songs List Container (Hidden by default using 'hidden' class) -->
+        <!-- Songs List Container (Hidden by default) -->
         <section id="songs-container" class="space-y-4 hidden">
             <div class="flex justify-between items-center border-b border-slate-800 pb-2">
                 <h2 id="list-header" class="text-sm font-semibold text-slate-400">Song Results</h2>
@@ -83,7 +83,7 @@
 
     <!-- App Logic Script -->
     <script>
-        // Sample song dataset for demonstration
+        // Sample song dataset
         const songs = [
             {
                 id: 1,
@@ -144,17 +144,15 @@
 
         let activeCategory = null;
 
-        // Render songs sorted alphabetically
-        function renderSongs(songsToRender, titleText = "All Songs") {
+        // Render song cards sorted alphabetically
+        function renderSongs(songsToRender, titleText) {
             listHeader.textContent = titleText;
             
-            // Sort alphabetically by title
             const sortedSongs = [...songsToRender].sort((a, b) => a.title.localeCompare(b.title));
-            
             songCount.textContent = `${sortedSongs.length} song${sortedSongs.length === 1 ? '' : 's'} found`;
 
             if (sortedSongs.length === 0) {
-                songsList.innerHTML = `<p class="text-center text-slate-500 py-8">No songs found.</p>`;
+                songsList.innerHTML = `<p class="text-center text-slate-500 py-8">No songs found in this category.</p>`;
                 return;
             }
 
@@ -182,9 +180,9 @@
             `).join('');
         }
 
-        // Open/Display songs list on search click or input
+        // Display list and filter
         function openAndFilterSongs() {
-            songsContainer.classList.remove('hidden'); // Show container when search is used
+            songsContainer.classList.remove('hidden'); // Show container when triggered
             const query = searchInput.value.toLowerCase().trim();
             
             let filtered = songs.filter(song => {
@@ -193,7 +191,10 @@
                 return matchesSearch && matchesCategory;
             });
 
-            const headerLabel = activeCategory ? `${activeCategory} Songs` : (query ? `Results for "${query}"` : "All Songs");
+            const headerLabel = activeCategory 
+                ? (query ? `${activeCategory} Songs matching "${query}"` : `${activeCategory} Songs`)
+                : (query ? `Results for "${query}"` : "All Songs");
+
             renderSongs(filtered, headerLabel);
         }
 
@@ -202,16 +203,22 @@
         searchInput.addEventListener('focus', openAndFilterSongs);
         searchInput.addEventListener('input', openAndFilterSongs);
 
-        // Category button click logic
+        // Category Button Click Events
         categoryButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const category = button.getAttribute('data-category');
 
                 if (activeCategory === category) {
+                    // Toggle Off
                     activeCategory = null;
                     button.classList.remove('bg-indigo-600', 'text-white');
                     button.classList.add('bg-slate-800', 'text-slate-300');
+                    if (!searchInput.value.trim()) {
+                        songsContainer.classList.add('hidden'); // Hide if search is empty and category unselected
+                        return;
+                    }
                 } else {
+                    // Toggle On
                     categoryButtons.forEach(btn => {
                         btn.classList.remove('bg-indigo-600', 'text-white');
                         btn.classList.add('bg-slate-800', 'text-slate-300');
@@ -221,10 +228,7 @@
                     button.classList.add('bg-indigo-600', 'text-white');
                 }
 
-                // If song list is open, update results according to category filter
-                if (!songsContainer.classList.contains('hidden')) {
-                    openAndFilterSongs();
-                }
+                openAndFilterSongs();
             });
         });
     </script>
