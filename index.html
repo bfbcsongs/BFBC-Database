@@ -38,17 +38,14 @@
                 type="text" 
                 id="search-input"
                 placeholder="Search songs by title, lyrics, or number..." 
-                class="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-inner"
+                class="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-inner cursor-pointer"
             >
         </div>
 
-        <!-- Categories Filter Buttons -->
-        <div>
+        <!-- Categories Filter Buttons (without "All") -->
+        <div class="mb-6">
             <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Categories</h2>
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2" id="category-buttons">
-                <button data-category="All" class="category-btn active bg-indigo-600 text-white font-medium py-2 px-3 rounded-lg text-sm transition-all shadow hover:bg-indigo-500 text-center">
-                    All
-                </button>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2" id="category-buttons">
                 <button data-category="Opening" class="category-btn bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700 font-medium py-2 px-3 rounded-lg text-sm transition-all text-center">
                     Opening
                 </button>
@@ -64,30 +61,177 @@
                 <button data-category="Closing" class="category-btn bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700 font-medium py-2 px-3 rounded-lg text-sm transition-all text-center">
                     Closing
                 </button>
-                <button data-category="Others" class="category-btn col-span-2 sm:col-span-1 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700 font-medium py-2 px-3 rounded-lg text-sm transition-all text-center">
+                <button data-category="Others" class="category-btn bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700 font-medium py-2 px-3 rounded-lg text-sm transition-all text-center">
                     Others
                 </button>
             </div>
         </div>
 
+        <!-- Songs List Container (Shows when search is activated/focused) -->
+        <section id="songs-container" class="space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                <h2 id="list-header" class="text-sm font-semibold text-slate-400">Song Results</h2>
+                <span id="song-count" class="text-xs text-indigo-400 font-medium"></span>
+            </div>
+
+            <div id="songs-list" class="space-y-3">
+                <!-- Song cards will render here dynamically -->
+            </div>
+        </section>
+
     </main>
 
     <!-- App Logic Script -->
     <script>
-        // Category selection toggle
-        const categoryButtons = document.querySelectorAll('.category-btn');
+        // Sample song dataset for demonstration (Replace/Connect with Supabase later)
+        const songs = [
+            {
+                id: 1,
+                title: "Amazing Grace",
+                category: "Opening",
+                lyrics: "Amazing grace, how sweet the sound, that saved a wretch like me...",
+                audioUrl: "#",
+                videoUrl: "#"
+            },
+            {
+                id: 2,
+                title: "Blessed Assurance",
+                category: "Joyful",
+                lyrics: "Blessed assurance, Jesus is mine! Oh, what a foretaste of glory divine!",
+                audioUrl: "#",
+                videoUrl: "#"
+            },
+            {
+                id: 3,
+                title: "How Great Thou Art",
+                category: "Solemn",
+                lyrics: "O Lord my God, when I in awesome wonder, consider all the worlds thy hands have made...",
+                audioUrl: "#",
+                videoUrl: "#"
+            },
+            {
+                id: 4,
+                title: "Take My Life and Let It Be",
+                category: "Offering",
+                lyrics: "Take my life and let it be consecrated, Lord, to thee...",
+                audioUrl: "#",
+                videoUrl: "#"
+            },
+            {
+                id: 5,
+                title: "Abide With Me",
+                category: "Closing",
+                lyrics: "Abide with me; fast falls the eventide; the darkness deepens; Lord with me abide...",
+                audioUrl: "#",
+                videoUrl: "#"
+            },
+            {
+                id: 6,
+                title: "Count Your Blessings",
+                category: "Others",
+                lyrics: "When upon life’s billows you are tempest-tossed, when you are discouraged, thinking all is lost...",
+                audioUrl: "#",
+                videoUrl: "#"
+            }
+        ];
 
+        const searchInput = document.getElementById('search-input');
+        const categoryButtons = document.querySelectorAll('.category-btn');
+        const songsList = document.getElementById('songs-list');
+        const songCount = document.getElementById('song-count');
+        const listHeader = document.getElementById('list-header');
+
+        let activeCategory = null;
+
+        // Render songs list sorted alphabetically
+        function renderSongs(songsToRender, titleText = "All Songs") {
+            listHeader.textContent = titleText;
+            
+            // Sort alphabetically by title
+            const sortedSongs = [...songsToRender].sort((a, b) => a.title.localeCompare(b.title));
+            
+            songCount.textContent = `${sortedSongs.length} song${sortedSongs.length === 1 ? '' : 's'} found`;
+
+            if (sortedSongs.length === 0) {
+                songsList.innerHTML = `<p class="text-center text-slate-500 py-8">No songs found.</p>`;
+                return;
+            }
+
+            songsList.innerHTML = sortedSongs.map(song => `
+                <div class="p-4 bg-slate-800 border border-slate-700/70 rounded-xl hover:border-indigo-500/50 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="font-bold text-lg text-white">${song.title}</h3>
+                            <span class="text-xs px-2.5 py-0.5 bg-indigo-950/80 text-indigo-300 border border-indigo-800/50 rounded-full font-medium">
+                                ${song.category}
+                            </span>
+                        </div>
+                        <p class="text-sm text-slate-300 italic line-clamp-2">"${song.lyrics}"</p>
+                    </div>
+
+                    <!-- Action Buttons for Audio & Video -->
+                    <div class="flex items-center gap-2 shrink-0">
+                        <a href="${song.audioUrl}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white border border-emerald-600/30 rounded-lg text-xs font-semibold transition-all">
+                            <i class="fa-solid fa-music"></i> Audio
+                        </a>
+                        <a href="${song.videoUrl}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-600/30 rounded-lg text-xs font-semibold transition-all">
+                            <i class="fa-solid fa-play"></i> Video
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Search input events (Opens/Displays all or filtered songs on click/typing)
+        searchInput.addEventListener('focus', () => {
+            filterAndRender();
+        });
+
+        searchInput.addEventListener('input', () => {
+            filterAndRender();
+        });
+
+        // Filter functionality combining search query and active category
+        function filterAndRender() {
+            const query = searchInput.value.toLowerCase().trim();
+            
+            let filtered = songs.filter(song => {
+                const matchesSearch = song.title.toLowerCase().includes(query) || song.lyrics.toLowerCase().includes(query);
+                const matchesCategory = activeCategory ? song.category === activeCategory : true;
+                return matchesSearch && matchesCategory;
+            });
+
+            const headerLabel = activeCategory ? `${activeCategory} Songs` : (query ? `Results for "${query}"` : "All Songs");
+            renderSongs(filtered, headerLabel);
+        }
+
+        // Category button click logic
         categoryButtons.forEach(button => {
             button.addEventListener('click', () => {
-                categoryButtons.forEach(btn => {
-                    btn.classList.remove('bg-indigo-600', 'text-white');
-                    btn.classList.add('bg-slate-800', 'text-slate-300', 'border', 'border-slate-700');
-                });
+                const category = button.getAttribute('data-category');
 
-                button.classList.remove('bg-slate-800', 'text-slate-300', 'border', 'border-slate-700');
-                button.classList.add('bg-indigo-600', 'text-white');
+                if (activeCategory === category) {
+                    // Deselect category if clicked again
+                    activeCategory = null;
+                    button.classList.remove('bg-indigo-600', 'text-white');
+                    button.classList.add('bg-slate-800', 'text-slate-300');
+                } else {
+                    // Highlight selected category
+                    categoryButtons.forEach(btn => {
+                        btn.classList.remove('bg-indigo-600', 'text-white');
+                        btn.classList.add('bg-slate-800', 'text-slate-300');
+                    });
+                    activeCategory = category;
+                    button.classList.remove('bg-slate-800', 'text-slate-300');
+                    button.classList.add('bg-indigo-600', 'text-white');
+                }
+
+                filterAndRender();
             });
         });
+
+        // Initial view: Load all songs automatically
+        renderSongs(songs, "All Songs");
     </script>
 </body>
 </html>
