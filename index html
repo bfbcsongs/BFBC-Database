@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BFBC Praise and Worship Song</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-900 flex flex-col items-center p-4 sm:p-6">
+
+  <!-- Main Container -->
+  <div class="w-full max-w-md flex flex-col items-center">
+
+    <!-- Header Section -->
+    <header className="w-full text-center mt-4 mb-6">
+      <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 flex items-center justify-center gap-2">
+        <i data-lucide="music" class="w-7 h-7 text-indigo-600"></i>
+        BFBC PRAISE AND WORSHIP SONG
+      </h1>
+    </header>
+
+    <!-- Search Bar -->
+    <div class="w-full relative mb-6">
+      <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+        <i data-lucide="search" class="w-5 h-5"></i>
+      </div>
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="Search songs, lyrics, or categories..."
+        class="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+        onkeyup="filterCategories()"
+      />
+    </div>
+
+    <!-- Category Section -->
+    <div class="w-full">
+      <h2 class="text-xl font-bold text-slate-800 mb-4">Choose Category</h2>
+
+      <div id="categoryGrid" class="grid grid-cols-2 gap-4">
+
+        <!-- Joyful Songs (Active State) -->
+        <a href="#joyful" class="category-card flex flex-col items-center justify-center p-6 rounded-2xl border shadow-lg bg-slate-900 text-white border-slate-900 transition-all duration-200 hover:scale-105">
+          <i data-lucide="music" class="w-8 h-8 mb-2 text-white"></i>
+          <span class="font-semibold text-center text-base leading-tight">Joyful Songs</span>
+        </a>
+
+        <!-- Solemn Songs -->
+        <a href="#solemn" class="category-card flex flex-col items-center justify-center p-6 rounded-2xl border shadow-sm bg-white text-slate-900 border-slate-200 hover:border-slate-300 transition-all duration-200 hover:scale-105">
+          <i data-lucide="sparkles" class="w-8 h-8 mb-2 text-amber-500"></i>
+          <span class="font-semibold text-center text-base leading-tight">Solemn Songs</span>
+        </a>
+
+        <!-- Welcoming Songs -->
+        <a href="#welcoming" class="category-card flex flex-col items-center justify-center p-6 rounded-2xl border shadow-sm bg-white text-slate-900 border-slate-200 hover:border-slate-300 transition-all duration-200 hover:scale-105">
+          <i data-lucide="handshake" class="w-8 h-8 mb-2 text-yellow-500"></i>
+          <span class="font-semibold text-center text-base leading-tight">Welcoming Songs</span>
+        </a>
+
+        <!-- Offering Songs -->
+        <a href="#offering" class="category-card flex flex-col items-center justify-center p-6 rounded-2xl border shadow-sm bg-white text-slate-900 border-slate-200 hover:border-slate-300 transition-all duration-200 hover:scale-105">
+          <i data-lucide="circle-dollar-sign" class="w-8 h-8 mb-2 text-emerald-500"></i>
+          <span class="font-semibold text-center text-base leading-tight">Offering Songs</span>
+        </a>
+
+        <!-- Closing Songs -->
+        <a href="#closing" class="category-card flex flex-col items-center justify-center p-6 rounded-2xl border shadow-sm bg-white text-slate-900 border-slate-200 hover:border-slate-300 transition-all duration-200 hover:scale-105">
+          <i data-lucide="cross" class="w-8 h-8 mb-2 text-purple-600"></i>
+          <span class="font-semibold text-center text-base leading-tight">Closing Songs</span>
+        </a>
+
+        <!-- Others -->
+        <a href="#others" class="category-card flex flex-col items-center justify-center p-6 rounded-2xl border shadow-sm bg-white text-slate-900 border-slate-200 hover:border-slate-300 transition-all duration-200 hover:scale-105">
+          <i data-lucide="library" class="w-8 h-8 mb-2 text-rose-500"></i>
+          <span class="font-semibold text-center text-base leading-tight">Others</span>
+        </a>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Lucide Icon Initialization & Search Logic -->
+  <script>
+    // Initialize icons
+    lucide.createIcons();
+
+    // Client-side category filtering
+    function filterCategories() {
+      const input = document.getElementById('searchInput').value.toLowerCase();
+      const cards = document.querySelectorAll('.category-card');
+
+      cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        if (text.includes(input)) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+  </script>
+</body>
+</html>
