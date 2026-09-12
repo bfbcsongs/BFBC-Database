@@ -81,7 +81,7 @@
             </div>
 
             <div id="songs-list" class="space-y-3">
-                <!-- Dynamic song items -->
+                <!-- Dynamic song items loaded from Supabase -->
             </div>
         </section>
 
@@ -134,7 +134,9 @@
 
                 <div class="flex justify-end gap-2 pt-2 border-t border-slate-700">
                     <button type="button" id="cancel-modal-btn" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold rounded-lg transition-all">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition-all">Save Song</button>
+                    <button type="submit" id="save-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition-all flex items-center gap-2">
+                        <span>Save Song</span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -142,57 +144,17 @@
 
     <!-- App Logic Script -->
     <script>
-        // Sample in-memory dataset
-        let songs = [
-            {
-                id: "1",
-                title: "Amazing Grace",
-                category: "Opening",
-                lyrics: "Amazing grace, how sweet the sound, that saved a wretch like me...",
-                audioUrl: "#",
-                videoUrl: "#"
-            },
-            {
-                id: "2",
-                title: "Blessed Assurance",
-                category: "Joyful",
-                lyrics: "Blessed assurance, Jesus is mine! Oh, what a foretaste of glory divine!",
-                audioUrl: "#",
-                videoUrl: "#"
-            },
-            {
-                id: "3",
-                title: "How Great Thou Art",
-                category: "Solemn",
-                lyrics: "O Lord my God, when I in awesome wonder, consider all the worlds thy hands have made...",
-                audioUrl: "#",
-                videoUrl: "#"
-            },
-            {
-                id: "4",
-                title: "Take My Life and Let It Be",
-                category: "Offering",
-                lyrics: "Take my life and let it be consecrated, Lord, to thee...",
-                audioUrl: "#",
-                videoUrl: "#"
-            },
-            {
-                id: "5",
-                title: "Abide With Me",
-                category: "Closing",
-                lyrics: "Abide with me; fast falls the eventide; the darkness deepens; Lord with me abide...",
-                audioUrl: "#",
-                videoUrl: "#"
-            },
-            {
-                id: "6",
-                title: "Count Your Blessings",
-                category: "Others",
-                lyrics: "When upon life’s billows you are tempest-tossed, when you are discouraged, thinking all is lost...",
-                audioUrl: "#",
-                videoUrl: "#"
-            }
-        ];
+        // -------------------------------------------------------------
+        // 1. SUPABASE INITIALIZATION
+        // REPLACE THESE TWO VALUES WITH YOUR SUPABASE PROJECT CREDENTIALS
+        // -------------------------------------------------------------
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        
+        const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let songs = []; // Local cache fetched from Supabase
+        let activeCategory = null;
 
         const searchInput = document.getElementById('search-input');
         const categoryButtons = document.querySelectorAll('.category-btn');
@@ -201,7 +163,6 @@
         const songCount = document.getElementById('song-count');
         const listHeader = document.getElementById('list-header');
 
-        // Modal Elements
         const songModal = document.getElementById('song-modal');
         const modalTitle = document.getElementById('modal-title');
         const songForm = document.getElementById('song-form');
@@ -209,9 +170,22 @@
         const closeModalBtn = document.getElementById('close-modal-btn');
         const cancelModalBtn = document.getElementById('cancel-modal-btn');
 
-        let activeCategory = null;
+        // Fetch Songs from Supabase Table 'songs'
+        async function fetchSongs() {
+            try {
+                const { data, error } = await db
+                    .from('songs')
+                    .select('*')
+                    .order('title', { ascending: true });
 
-        // Render song cards alphabetically
+                if (error) throw error;
+                songs = data || [];
+            } catch (err) {
+                console.error('Error fetching songs from Supabase:', err);
+            }
+        }
+
+        // Render song cards
         function renderSongs(songsToRender, titleText) {
             listHeader.textContent = titleText;
             
@@ -236,12 +210,14 @@
                     </div>
 
                     <div class="flex items-center gap-2 shrink-0">
-                        <a href="${song.audioUrl || '#'}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white border border-emerald-600/30 rounded-lg text-xs font-semibold transition-all">
+                        ${song.audio_url ? `
+                        <a href="${song.audio_url}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white border border-emerald-600/30 rounded-lg text-xs font-semibold transition-all">
                             <i class="fa-solid fa-music"></i> Audio
-                        </a>
-                        <a href="${song.videoUrl || '#'}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-600/30 rounded-lg text-xs font-semibold transition-all">
+                        </a>` : ''}
+                        ${song.video_url ? `
+                        <a href="${song.video_url}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-600/30 rounded-lg text-xs font-semibold transition-all">
                             <i class="fa-solid fa-play"></i> Video
-                        </a>
+                        </a>` : ''}
                         <button onclick="editSong('${song.id}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white border border-slate-600 rounded-lg text-xs font-semibold transition-all">
                             <i class="fa-solid fa-pen"></i> Edit
                         </button>
@@ -250,9 +226,10 @@
             `).join('');
         }
 
-        // Display list and apply filter
-        function openAndFilterSongs() {
+        async function openAndFilterSongs() {
             songsContainer.classList.remove('hidden');
+            await fetchSongs(); // Sync latest data
+
             const query = searchInput.value.toLowerCase().trim();
             
             let filtered = songs.filter(song => {
@@ -268,7 +245,6 @@
             renderSongs(filtered, headerLabel);
         }
 
-        // Reset Category Buttons State
         function clearCategorySelection() {
             activeCategory = null;
             categoryButtons.forEach(btn => {
@@ -277,7 +253,6 @@
             });
         }
 
-        // Search Bar Events (clears active category & opens all songs)
         function handleSearchFocus() {
             clearCategorySelection();
             openAndFilterSongs();
@@ -287,7 +262,6 @@
         searchInput.addEventListener('focus', handleSearchFocus);
         searchInput.addEventListener('input', openAndFilterSongs);
 
-        // Category Buttons Events
         categoryButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const category = button.getAttribute('data-category');
@@ -305,7 +279,6 @@
             });
         });
 
-        // Modal Controls
         function openModal(isEdit = false) {
             modalTitle.textContent = isEdit ? "Edit Song" : "Add New Song";
             songModal.classList.remove('hidden');
@@ -321,44 +294,60 @@
         closeModalBtn.addEventListener('click', closeModal);
         cancelModalBtn.addEventListener('click', closeModal);
 
-        // Edit Song Handler
         window.editSong = function(id) {
-            const song = songs.find(s => s.id === id);
+            const song = songs.find(s => s.id == id);
             if (!song) return;
 
             document.getElementById('song-id').value = song.id;
             document.getElementById('song-title-input').value = song.title;
             document.getElementById('song-category-input').value = song.category;
-            document.getElementById('song-audio-input').value = song.audioUrl !== '#' ? song.audioUrl : '';
-            document.getElementById('song-video-input').value = song.videoUrl !== '#' ? song.videoUrl : '';
+            document.getElementById('song-audio-input').value = song.audio_url || '';
+            document.getElementById('song-video-input').value = song.video_url || '';
             document.getElementById('song-lyrics-input').value = song.lyrics || '';
 
             openModal(true);
         };
 
-        // Form Submit Handler (Add or Save changes)
-        songForm.addEventListener('submit', (e) => {
+        // Save/Insert into Supabase
+        songForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const id = document.getElementById('song-id').value;
-            const title = document.getElementById('song-title-input').value;
-            const category = document.getElementById('song-category-input').value;
-            const audioUrl = document.getElementById('song-audio-input').value || '#';
-            const videoUrl = document.getElementById('song-video-input').value || '#';
-            const lyrics = document.getElementById('song-lyrics-input').value;
+            const songPayload = {
+                title: document.getElementById('song-title-input').value,
+                category: document.getElementById('song-category-input').value,
+                audio_url: document.getElementById('song-audio-input').value || null,
+                video_url: document.getElementById('song-video-input').value || null,
+                lyrics: document.getElementById('song-lyrics-input').value || null
+            };
 
-            if (id) {
-                // Update existing song
-                songs = songs.map(song => song.id === id ? { ...song, title, category, audioUrl, videoUrl, lyrics } : song);
-            } else {
-                // Add new song
-                const newSong = { id: Date.now().toString(), title, category, audioUrl, videoUrl, lyrics };
-                songs.push(newSong);
+            try {
+                if (id) {
+                    // Update existing song
+                    const { error } = await db
+                        .from('songs')
+                        .update(songPayload)
+                        .eq('id', id);
+
+                    if (error) throw error;
+                } else {
+                    // Insert new song
+                    const { error } = await db
+                        .from('songs')
+                        .insert([songPayload]);
+
+                    if (error) throw error;
+                }
+
+                closeModal();
+                openAndFilterSongs();
+            } catch (err) {
+                alert('Error saving song: ' + err.message);
             }
-
-            closeModal();
-            openAndFilterSongs();
         });
+
+        // Initial background fetch
+        fetchSongs();
     </script>
 </body>
-</html>
+                            </html>
