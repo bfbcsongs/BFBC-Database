@@ -1,396 +1,139 @@
-const SUPABASE_URL = 'https://qxnrogteskdwvrxztwvx.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_nFGA38fcKrTioIZOkAHRrg_MkbZigvw';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BFBC SONGS by paulm</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS Client CDN (Official v2 Package) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen pb-12">
 
-let db = null;
-
-// Initial Songs Dataset
-let songs = [
-    {
-        id: "1",
-        title: "Amazing Grace",
-        category: "Opening",
-        lyrics: "Amazing grace, how sweet the sound, that saved a wretch like me...\nI once was lost, but now am found;\nWas blind, but now I see.",
-        audio_url: "https://example.com/audio",
-        video_url: "https://example.com/video",
-        approved: true,
-        created_at: Date.now() - 300000
-    },
-    {
-        id: "2",
-        title: "Blessed Assurance",
-        category: "Joyful",
-        lyrics: "Blessed assurance, Jesus is mine!\nOh, what a foretaste of glory divine!\nHeir of salvation, purchase of God,\nBorn of His Spirit, washed in His blood.",
-        audio_url: "https://example.com/audio",
-        video_url: "https://example.com/video",
-        approved: true,
-        created_at: Date.now() - 200000
-    },
-    {
-        id: "3",
-        title: "How Great Thou Art",
-        category: "Solemn",
-        lyrics: "O Lord my God, when I in awesome wonder,\nConsider all the worlds Thy hands have made;\nI see the stars, I hear the rolling thunder,\nThy power throughout the universe displayed.",
-        audio_url: "https://example.com/audio",
-        video_url: "https://example.com/video",
-        approved: true,
-        created_at: Date.now() - 100000
-    }
-];
-
-let activeCategory = null;
-let inNewFolderView = false;
-
-const searchInput = document.getElementById('search-input');
-const categoryButtons = document.querySelectorAll('.category-btn');
-const newFolderBtn = document.getElementById('new-folder-btn');
-const newCountBadge = document.getElementById('new-count-badge');
-const songsContainer = document.getElementById('songs-container');
-const songsList = document.getElementById('songs-list');
-const songCount = document.getElementById('song-count');
-const listHeader = document.getElementById('list-header');
-
-const songModal = document.getElementById('song-modal');
-const modalTitle = document.getElementById('modal-title');
-const songForm = document.getElementById('song-form');
-const addSongBtn = document.getElementById('add-song-btn');
-const closeModalBtn = document.getElementById('close-modal-btn');
-const cancelModalBtn = document.getElementById('cancel-modal-btn');
-
-function initSupabase() {
-    if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && typeof supabase !== 'undefined') {
-        try {
-            db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        } catch(e) {
-            console.log('Supabase not configured yet');
-        }
-    }
-}
-
-async function fetchSongs() {
-    if (!db) return;
-    try {
-        const { data, error } = await db.from('songs').select('*').order('created_at', { ascending: false });
-        if (!error && data && data.length > 0) {
-            songs = data;
-        }
-    } catch (err) {
-        console.log('Using local dataset');
-    }
-    updateNewFolderBadge();
-}
-
-function updateNewFolderBadge() {
-    const unapprovedCount = songs.filter(s => s.approved === false || s.approved === 'false').length;
-    if (newCountBadge) {
-        newCountBadge.textContent = unapprovedCount;
-    }
-}
-
-function renderSongs(songsToRender, titleText) {
-    listHeader.textContent = titleText;
-    
-    let sortedSongs = [...songsToRender];
-
-    if (inNewFolderView) {
-        sortedSongs.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-    } else {
-        sortedSongs.sort((a, b) => a.title.localeCompare(b.title));
-    }
-
-    songCount.textContent = `${sortedSongs.length} song${sortedSongs.length === 1 ? '' : 's'} found`;
-
-    if (sortedSongs.length === 0) {
-        songsList.innerHTML = `<p class="text-center text-slate-500 py-8">No songs found in this view.</p>`;
-        return;
-    }
-
-    songsList.innerHTML = sortedSongs.map(song => `
-        <div class="p-4 bg-slate-800 border border-slate-700/70 rounded-xl hover:border-indigo-500/50 transition-all space-y-3">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div class="space-y-1">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <h3 class="font-bold text-lg text-white">${song.title}</h3>
-                        <span class="text-xs px-2.5 py-0.5 bg-indigo-950/80 text-indigo-300 border border-indigo-800/50 rounded-full font-medium">
-                            ${song.category}
-                        </span>
-                        ${(song.approved === false || song.approved === 'false') ? `<span class="text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full font-bold">Unapproved</span>` : ''}
-                    </div>
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-40">
+        <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="#" class="flex items-center space-x-2.5">
+                <i class="fa-solid fa-music text-indigo-400 text-xl"></i>
+                <div class="flex flex-col">
+                    <h1 class="text-lg font-bold tracking-wide text-white leading-tight">BFBC SONGS</h1>
+                    <span class="text-[9px] text-slate-500 italic font-mono lowercase tracking-tight">created by paulm</span>
                 </div>
+            </a>
+            <button id="add-song-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-md transition cursor-pointer">
+                <i class="fa-solid fa-plus"></i> Add Song
+            </button>
+        </div>
+    </header>
 
-                <div class="flex items-center gap-2 shrink-0 flex-wrap">
-                    ${song.audio_url && song.audio_url !== '#' ? `
-                    <a href="${song.audio_url}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white border border-emerald-600/30 rounded-lg text-xs font-semibold transition-all">
-                        <i class="fa-solid fa-music"></i> Audio
-                    </a>` : ''}
+    <!-- Main Mobile Container -->
+    <main class="max-w-md mx-auto px-4 py-4 space-y-4">
 
-                    ${song.video_url && song.video_url !== '#' ? `
-                    <a href="${song.video_url}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-600/30 rounded-lg text-xs font-semibold transition-all">
-                        <i class="fa-solid fa-play"></i> Video
-                    </a>` : ''}
+        <!-- Search Bar -->
+        <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input type="text" id="search-input" placeholder="Search title or lyrics..." class="w-full bg-slate-800 border border-slate-700/80 rounded-xl pl-10 pr-3 py-2.5 text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition shadow-inner">
+        </div>
 
-                    <button onclick="toggleLyrics('${song.id}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600/20 text-sky-400 hover:bg-sky-600 hover:text-white border border-sky-600/30 rounded-lg text-xs font-semibold transition-all cursor-pointer">
-                        <i class="fa-solid fa-align-left"></i> Lyrics
-                    </button>
+        <!-- Special Folders & Actions -->
+        <div class="flex items-center justify-between">
+            <button id="new-folder-btn" class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold transition hover:bg-amber-500 hover:text-slate-900 cursor-pointer">
+                <i class="fa-solid fa-folder-plus"></i> New Songs Folder
+                <span id="new-count-badge" class="bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full text-[10px] font-black">0</span>
+            </button>
+        </div>
 
-                    <button onclick="handleEditTap('${song.id}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white border border-slate-600 rounded-lg text-xs font-semibold transition-all cursor-pointer">
-                        <i class="fa-solid fa-pen"></i> Edit
-                    </button>
-
-                    <button onclick="handleThumbsUpTap('${song.id}')" title="Tap 5 times to approve" class="flex items-center justify-center p-2 bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-slate-900 border border-amber-500/30 rounded-lg transition-all cursor-pointer">
-                        <i class="fa-solid fa-thumbs-up text-sm"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div id="lyrics-container-${song.id}" class="hidden pt-3 border-t border-slate-700/60 text-slate-300 text-sm whitespace-pre-line font-mono bg-slate-900/50 p-3 rounded-lg border border-slate-800">
-                ${song.lyrics || 'No lyrics provided.'}
+        <!-- Mobile Portrait Optimized Grid (2 Columns, 3 Rows) -->
+        <div class="space-y-1.5">
+            <h2 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Categories</h2>
+            <div class="grid grid-cols-2 gap-2">
+                <button class="category-btn w-full px-3 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700/60 hover:border-indigo-500/50 transition cursor-pointer flex items-center justify-center gap-2" data-category="Opening">
+                    <i class="fa-solid fa-door-open text-indigo-400"></i> Opening
+                </button>
+                <button class="category-btn w-full px-3 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700/60 hover:border-indigo-500/50 transition cursor-pointer flex items-center justify-center gap-2" data-category="Joyful">
+                    <i class="fa-solid fa-face-smile text-amber-400"></i> Joyful
+                </button>
+                <button class="category-btn w-full px-3 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700/60 hover:border-indigo-500/50 transition cursor-pointer flex items-center justify-center gap-2" data-category="Solemn">
+                    <i class="fa-solid fa-hands-praying text-sky-400"></i> Solemn
+                </button>
+                <button class="category-btn w-full px-3 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700/60 hover:border-indigo-500/50 transition cursor-pointer flex items-center justify-center gap-2" data-category="Offering">
+                    <i class="fa-solid fa-hand-holding-heart text-emerald-400"></i> Offering
+                </button>
+                <button class="category-btn w-full px-3 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700/60 hover:border-indigo-500/50 transition cursor-pointer flex items-center justify-center gap-2" data-category="Closing">
+                    <i class="fa-solid fa-flag-checkered text-rose-400"></i> Closing
+                </button>
+                <button class="category-btn w-full px-3 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700/60 hover:border-indigo-500/50 transition cursor-pointer flex items-center justify-center gap-2" data-category="Others">
+                    <i class="fa-solid fa-ellipsis text-slate-400"></i> Others
+                </button>
             </div>
         </div>
-    `).join('');
-}
 
-window.toggleLyrics = function(id) {
-    const lyricsElement = document.getElementById(`lyrics-container-${id}`);
-    if (lyricsElement) {
-        lyricsElement.classList.toggle('hidden');
-    }
-};
+        <!-- Dynamic Songs List Section -->
+        <div id="songs-container" class="space-y-3 pt-2">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h2 id="list-header" class="font-bold text-base text-slate-200">All Songs</h2>
+                <span id="song-count" class="text-xs font-medium text-slate-400">0 songs found</span>
+            </div>
+            <div id="songs-list" class="space-y-3">
+                <!-- Song items render here -->
+            </div>
+        </div>
 
-let tapTracker = { songId: null, count: 0, timer: null };
+    </main>
 
-window.handleEditTap = function(id) {
-    if (tapTracker.songId === id) {
-        tapTracker.count++;
-    } else {
-        tapTracker.songId = id;
-        tapTracker.count = 1;
-    }
+    <!-- Modal for Adding / Editing Songs -->
+    <div id="song-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 w-full max-w-md rounded-2xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h3 id="modal-title" class="text-base font-bold text-white">Add New Song</h3>
+                <button id="close-modal-btn" class="text-slate-400 hover:text-white cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="song-form" class="space-y-3">
+                <input type="hidden" id="song-id">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Song Title</label>
+                    <input type="text" id="song-title-input" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Category</label>
+                    <select id="song-category-input" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
+                        <option value="" disabled selected>Select Category...</option>
+                        <option value="Opening">Opening</option>
+                        <option value="Joyful">Joyful</option>
+                        <option value="Solemn">Solemn</option>
+                        <option value="Offering">Offering</option>
+                        <option value="Closing">Closing</option>
+                        <option value="Others">Others</option>
+                    </select>
+                </div>
 
-    clearTimeout(tapTracker.timer);
-    tapTracker.timer = setTimeout(() => {
-        tapTracker.songId = null;
-        tapTracker.count = 0;
-    }, 2500);
+                <div class="grid grid-cols-1 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Audio URL (Optional)</label>
+                        <input type="text" id="song-audio-input" placeholder="https://..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Video URL (Optional)</label>
+                        <input type="text" id="song-video-input" placeholder="https://..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Lyrics</label>
+                    <textarea id="song-lyrics-input" rows="4" placeholder="Enter lyrics here..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white font-mono focus:outline-none focus:border-indigo-500"></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" id="cancel-modal-btn" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs font-medium cursor-pointer">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer">Save Song</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-    if (tapTracker.count >= 5) {
-        tapTracker.songId = null;
-        tapTracker.count = 0;
-        editSong(id);
-    }
-};
-
-let thumbsTapTracker = { songId: null, count: 0, timer: null };
-
-window.handleThumbsUpTap = async function(id) {
-    if (thumbsTapTracker.songId === id) {
-        thumbsTapTracker.count++;
-    } else {
-        thumbsTapTracker.songId = id;
-        thumbsTapTracker.count = 1;
-    }
-
-    clearTimeout(thumbsTapTracker.timer);
-    thumbsTapTracker.timer = setTimeout(() => {
-        thumbsTapTracker.songId = null;
-        thumbsTapTracker.count = 0;
-    }, 2500);
-
-    if (thumbsTapTracker.count >= 5) {
-        thumbsTapTracker.songId = null;
-        thumbsTapTracker.count = 0;
-        await approveSong(id);
-    }
-};
-
-async function approveSong(id) {
-    if (db) {
-        try {
-            await db.from('songs').update({ approved: true }).eq('id', id);
-            await fetchSongs();
-        } catch (err) {
-            console.error('Approval error:', err);
-        }
-    } else {
-        songs = songs.map(s => s.id == id ? { ...s, approved: true } : s);
-    }
-    updateNewFolderBadge();
-    filterAndShowSongs();
-}
-
-function filterAndShowSongs() {
-    songsContainer.classList.remove('hidden');
-    const query = searchInput.value.toLowerCase().trim();
-
-    let filtered = [];
-
-    if (inNewFolderView) {
-        filtered = songs.filter(song => {
-            const isUnapproved = (song.approved === false || song.approved === 'false');
-            const matchesSearch = song.title.toLowerCase().includes(query) || (song.lyrics && song.lyrics.toLowerCase().includes(query));
-            return isUnapproved && matchesSearch;
-        });
-        renderSongs(filtered, query ? `New Folder matching "${query}"` : "New Songs Folder");
-    } else {
-        filtered = songs.filter(song => {
-            // Include approved songs or songs without explicit false flags
-            const isApproved = song.approved !== false && song.approved !== 'false';
-            const matchesSearch = song.title.toLowerCase().includes(query) || (song.lyrics && song.lyrics.toLowerCase().includes(query));
-            
-            // Flexible category match (case-insensitive & trimmed)
-            const matchesCategory = activeCategory 
-                ? (song.category && song.category.trim().toLowerCase() === activeCategory.trim().toLowerCase())
-                : true;
-
-            return isApproved && matchesSearch && matchesCategory;
-        });
-
-        const headerLabel = activeCategory 
-            ? (query ? `${activeCategory} Songs matching "${query}"` : `${activeCategory} Songs`)
-            : (query ? `Results for "${query}"` : "All Songs");
-
-        renderSongs(filtered, headerLabel);
-    }
-}
-
-function clearCategorySelection() {
-    activeCategory = null;
-    categoryButtons.forEach(btn => {
-        btn.classList.remove('bg-indigo-600', 'text-white');
-        btn.classList.add('bg-slate-800', 'text-slate-300');
-    });
-}
-
-newFolderBtn.addEventListener('click', () => {
-    inNewFolderView = true;
-    clearCategorySelection();
-
-    newFolderBtn.classList.remove('bg-amber-500/20', 'text-amber-300');
-    newFolderBtn.classList.add('bg-amber-500', 'text-slate-900');
-
-    filterAndShowSongs();
-});
-
-searchInput.addEventListener('click', () => {
-    inNewFolderView = false;
-    newFolderBtn.classList.remove('bg-amber-500', 'text-slate-900');
-    newFolderBtn.classList.add('bg-amber-500/20', 'text-amber-300');
-    clearCategorySelection();
-    filterAndShowSongs();
-});
-
-searchInput.addEventListener('input', () => {
-    filterAndShowSongs();
-});
-
-categoryButtons.forEach(button => {
-    button.addEventListener('click', () => {
-        inNewFolderView = false;
-        newFolderBtn.classList.remove('bg-amber-500', 'text-slate-900');
-        newFolderBtn.classList.add('bg-amber-500/20', 'text-amber-300');
-
-        const category = button.getAttribute('data-category');
-
-        if (activeCategory === category) {
-            clearCategorySelection();
-        } else {
-            clearCategorySelection();
-            activeCategory = category;
-            button.classList.remove('bg-slate-800', 'text-slate-300');
-            button.classList.add('bg-indigo-600', 'text-white');
-        }
-
-        filterAndShowSongs();
-    });
-});
-
-function openModal(isEdit = false) {
-    modalTitle.textContent = isEdit ? "Edit Song" : "Add New Song";
-    songModal.classList.remove('hidden');
-}
-
-function closeModal() {
-    songModal.classList.add('hidden');
-    songForm.reset();
-    document.getElementById('song-id').value = '';
-}
-
-addSongBtn.addEventListener('click', () => openModal(false));
-closeModalBtn.addEventListener('click', closeModal);
-cancelModalBtn.addEventListener('click', closeModal);
-
-function editSong(id) {
-    const song = songs.find(s => s.id == id);
-    if (!song) return;
-
-    document.getElementById('song-id').value = song.id;
-    document.getElementById('song-title-input').value = song.title;
-    document.getElementById('song-category-input').value = song.category;
-    document.getElementById('song-audio-input').value = song.audio_url !== '#' ? (song.audio_url || '') : '';
-    document.getElementById('song-video-input').value = song.video_url !== '#' ? (song.video_url || '') : '';
-    document.getElementById('song-lyrics-input').value = song.lyrics || '';
-
-    openModal(true);
-}
-
-songForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const id = document.getElementById('song-id').value;
-    const isNew = !id;
-
-    const title = document.getElementById('song-title-input').value;
-    const category = document.getElementById('song-category-input').value;
-    const audio_url = document.getElementById('song-audio-input').value || '';
-    const video_url = document.getElementById('song-video-input').value || '';
-    const lyrics = document.getElementById('song-lyrics-input').value || '';
-
-    if (isNew) {
-        const newSong = {
-            title,
-            category,
-            audio_url,
-            video_url,
-            lyrics,
-            approved: false,
-            created_at: Date.now()
-        };
-
-        if (db) {
-            try {
-                await db.from('songs').insert([newSong]);
-                await fetchSongs();
-            } catch (err) {
-                console.error('Supabase insert error:', err);
-            }
-        } else {
-            songs.push({ id: Date.now().toString(), ...newSong });
-        }
-
-        inNewFolderView = true;
-        newFolderBtn.classList.remove('bg-amber-500/20', 'text-amber-300');
-        newFolderBtn.classList.add('bg-amber-500', 'text-slate-900');
-        clearCategorySelection();
-
-    } else {
-        if (db) {
-            try {
-                await db.from('songs').update({ title, category, audio_url, video_url, lyrics }).eq('id', id);
-                await fetchSongs();
-            } catch (err) {
-                console.error('Supabase update error:', err);
-            }
-        } else {
-            songs = songs.map(s => s.id == id ? { ...s, title, category, audio_url, video_url, lyrics } : s);
-        }
-    }
-
-    updateNewFolderBadge();
-    closeModal();
-    filterAndShowSongs();
-});
-
-window.addEventListener('DOMContentLoaded', async () => {
-    initSupabase();
-    await fetchSongs();
-    filterAndShowSongs();
-});
+    <!-- Application Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
