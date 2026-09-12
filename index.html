@@ -15,14 +15,20 @@
 
     <!-- Header -->
     <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 shadow-md">
-        <div class="max-w-4xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex flex-row justify-between items-center gap-2">
             <a href="#" class="flex items-center space-x-2">
                 <i class="fa-solid fa-music text-indigo-400 text-2xl"></i>
-                <h1 class="text-xl font-bold tracking-wide text-white">BFBC SONGS DATABASE</h1>
+                <h1 class="text-xl font-bold tracking-wide text-white hidden sm:block">BFBC SONGS DATABASE</h1>
+                <h1 class="text-xl font-bold tracking-wide text-white sm:hidden">BFBC SONGS</h1>
             </a>
-            <span class="text-xs text-indigo-300 font-medium px-2.5 py-1 bg-slate-700/60 rounded-full border border-slate-600">
-                by paulm
-            </span>
+            <div class="flex items-center gap-3">
+                <span class="text-xs text-indigo-300 font-medium px-2.5 py-1 bg-slate-700/60 rounded-full border border-slate-600 hidden sm:inline-block">
+                    by paulm
+                </span>
+                <button id="add-song-btn" class="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2 px-3 rounded-lg shadow transition-all">
+                    <i class="fa-solid fa-plus"></i> Add Song
+                </button>
+            </div>
         </div>
     </header>
 
@@ -37,7 +43,7 @@
             <input 
                 type="text" 
                 id="search-input"
-                placeholder="Search songs by title, lyrics, or number..." 
+                placeholder="Search songs by title, lyrics, or category..." 
                 class="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-inner cursor-pointer"
             >
         </div>
@@ -75,18 +81,71 @@
             </div>
 
             <div id="songs-list" class="space-y-3">
-                <!-- Song cards render here -->
+                <!-- Dynamic song items -->
             </div>
         </section>
 
     </main>
 
+    <!-- Modal for Add/Edit Song -->
+    <div id="song-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h3 id="modal-title" class="text-lg font-bold text-white">Add New Song</h3>
+                <button id="close-modal-btn" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="song-form" class="space-y-4">
+                <input type="hidden" id="song-id">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Song Title</label>
+                    <input type="text" id="song-title-input" required placeholder="e.g. Amazing Grace" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Category</label>
+                    <select id="song-category-input" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        <option value="Opening">Opening</option>
+                        <option value="Joyful">Joyful</option>
+                        <option value="Solemn">Solemn</option>
+                        <option value="Offering">Offering</option>
+                        <option value="Closing">Closing</option>
+                        <option value="Others">Others</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Audio Link (URL)</label>
+                    <input type="url" id="song-audio-input" placeholder="https://..." class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Video Link (URL)</label>
+                    <input type="url" id="song-video-input" placeholder="https://..." class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Lyrics</label>
+                    <textarea id="song-lyrics-input" rows="4" placeholder="Enter lyrics here..." class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-700">
+                    <button type="button" id="cancel-modal-btn" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold rounded-lg transition-all">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition-all">Save Song</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- App Logic Script -->
     <script>
-        // Sample song dataset
-        const songs = [
+        // Sample in-memory dataset
+        let songs = [
             {
-                id: 1,
+                id: "1",
                 title: "Amazing Grace",
                 category: "Opening",
                 lyrics: "Amazing grace, how sweet the sound, that saved a wretch like me...",
@@ -94,7 +153,7 @@
                 videoUrl: "#"
             },
             {
-                id: 2,
+                id: "2",
                 title: "Blessed Assurance",
                 category: "Joyful",
                 lyrics: "Blessed assurance, Jesus is mine! Oh, what a foretaste of glory divine!",
@@ -102,7 +161,7 @@
                 videoUrl: "#"
             },
             {
-                id: 3,
+                id: "3",
                 title: "How Great Thou Art",
                 category: "Solemn",
                 lyrics: "O Lord my God, when I in awesome wonder, consider all the worlds thy hands have made...",
@@ -110,7 +169,7 @@
                 videoUrl: "#"
             },
             {
-                id: 4,
+                id: "4",
                 title: "Take My Life and Let It Be",
                 category: "Offering",
                 lyrics: "Take my life and let it be consecrated, Lord, to thee...",
@@ -118,7 +177,7 @@
                 videoUrl: "#"
             },
             {
-                id: 5,
+                id: "5",
                 title: "Abide With Me",
                 category: "Closing",
                 lyrics: "Abide with me; fast falls the eventide; the darkness deepens; Lord with me abide...",
@@ -126,7 +185,7 @@
                 videoUrl: "#"
             },
             {
-                id: 6,
+                id: "6",
                 title: "Count Your Blessings",
                 category: "Others",
                 lyrics: "When upon life’s billows you are tempest-tossed, when you are discouraged, thinking all is lost...",
@@ -142,9 +201,17 @@
         const songCount = document.getElementById('song-count');
         const listHeader = document.getElementById('list-header');
 
+        // Modal Elements
+        const songModal = document.getElementById('song-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const songForm = document.getElementById('song-form');
+        const addSongBtn = document.getElementById('add-song-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const cancelModalBtn = document.getElementById('cancel-modal-btn');
+
         let activeCategory = null;
 
-        // Render song cards sorted alphabetically
+        // Render song cards alphabetically
         function renderSongs(songsToRender, titleText) {
             listHeader.textContent = titleText;
             
@@ -152,7 +219,7 @@
             songCount.textContent = `${sortedSongs.length} song${sortedSongs.length === 1 ? '' : 's'} found`;
 
             if (sortedSongs.length === 0) {
-                songsList.innerHTML = `<p class="text-center text-slate-500 py-8">No songs found in this category.</p>`;
+                songsList.innerHTML = `<p class="text-center text-slate-500 py-8">No songs found.</p>`;
                 return;
             }
 
@@ -165,28 +232,31 @@
                                 ${song.category}
                             </span>
                         </div>
-                        <p class="text-sm text-slate-300 italic line-clamp-2">"${song.lyrics}"</p>
+                        <p class="text-sm text-slate-300 italic line-clamp-2">"${song.lyrics || 'No lyrics provided'}"</p>
                     </div>
 
                     <div class="flex items-center gap-2 shrink-0">
-                        <a href="${song.audioUrl}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white border border-emerald-600/30 rounded-lg text-xs font-semibold transition-all">
+                        <a href="${song.audioUrl || '#'}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white border border-emerald-600/30 rounded-lg text-xs font-semibold transition-all">
                             <i class="fa-solid fa-music"></i> Audio
                         </a>
-                        <a href="${song.videoUrl}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-600/30 rounded-lg text-xs font-semibold transition-all">
+                        <a href="${song.videoUrl || '#'}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-600/30 rounded-lg text-xs font-semibold transition-all">
                             <i class="fa-solid fa-play"></i> Video
                         </a>
+                        <button onclick="editSong('${song.id}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white border border-slate-600 rounded-lg text-xs font-semibold transition-all">
+                            <i class="fa-solid fa-pen"></i> Edit
+                        </button>
                     </div>
                 </div>
             `).join('');
         }
 
-        // Display list and filter
+        // Display list and apply filter
         function openAndFilterSongs() {
-            songsContainer.classList.remove('hidden'); // Show container when triggered
+            songsContainer.classList.remove('hidden');
             const query = searchInput.value.toLowerCase().trim();
             
             let filtered = songs.filter(song => {
-                const matchesSearch = song.title.toLowerCase().includes(query) || song.lyrics.toLowerCase().includes(query);
+                const matchesSearch = song.title.toLowerCase().includes(query) || (song.lyrics && song.lyrics.toLowerCase().includes(query));
                 const matchesCategory = activeCategory ? song.category === activeCategory : true;
                 return matchesSearch && matchesCategory;
             });
@@ -198,31 +268,34 @@
             renderSongs(filtered, headerLabel);
         }
 
-        // Search Input Events
-        searchInput.addEventListener('click', openAndFilterSongs);
-        searchInput.addEventListener('focus', openAndFilterSongs);
+        // Reset Category Buttons State
+        function clearCategorySelection() {
+            activeCategory = null;
+            categoryButtons.forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'text-white');
+                btn.classList.add('bg-slate-800', 'text-slate-300');
+            });
+        }
+
+        // Search Bar Events (clears active category & opens all songs)
+        function handleSearchFocus() {
+            clearCategorySelection();
+            openAndFilterSongs();
+        }
+
+        searchInput.addEventListener('click', handleSearchFocus);
+        searchInput.addEventListener('focus', handleSearchFocus);
         searchInput.addEventListener('input', openAndFilterSongs);
 
-        // Category Button Click Events
+        // Category Buttons Events
         categoryButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const category = button.getAttribute('data-category');
 
                 if (activeCategory === category) {
-                    // Toggle Off
-                    activeCategory = null;
-                    button.classList.remove('bg-indigo-600', 'text-white');
-                    button.classList.add('bg-slate-800', 'text-slate-300');
-                    if (!searchInput.value.trim()) {
-                        songsContainer.classList.add('hidden'); // Hide if search is empty and category unselected
-                        return;
-                    }
+                    clearCategorySelection();
                 } else {
-                    // Toggle On
-                    categoryButtons.forEach(btn => {
-                        btn.classList.remove('bg-indigo-600', 'text-white');
-                        btn.classList.add('bg-slate-800', 'text-slate-300');
-                    });
+                    clearCategorySelection();
                     activeCategory = category;
                     button.classList.remove('bg-slate-800', 'text-slate-300');
                     button.classList.add('bg-indigo-600', 'text-white');
@@ -230,6 +303,61 @@
 
                 openAndFilterSongs();
             });
+        });
+
+        // Modal Controls
+        function openModal(isEdit = false) {
+            modalTitle.textContent = isEdit ? "Edit Song" : "Add New Song";
+            songModal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            songModal.classList.add('hidden');
+            songForm.reset();
+            document.getElementById('song-id').value = '';
+        }
+
+        addSongBtn.addEventListener('click', () => openModal(false));
+        closeModalBtn.addEventListener('click', closeModal);
+        cancelModalBtn.addEventListener('click', closeModal);
+
+        // Edit Song Handler
+        window.editSong = function(id) {
+            const song = songs.find(s => s.id === id);
+            if (!song) return;
+
+            document.getElementById('song-id').value = song.id;
+            document.getElementById('song-title-input').value = song.title;
+            document.getElementById('song-category-input').value = song.category;
+            document.getElementById('song-audio-input').value = song.audioUrl !== '#' ? song.audioUrl : '';
+            document.getElementById('song-video-input').value = song.videoUrl !== '#' ? song.videoUrl : '';
+            document.getElementById('song-lyrics-input').value = song.lyrics || '';
+
+            openModal(true);
+        };
+
+        // Form Submit Handler (Add or Save changes)
+        songForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('song-id').value;
+            const title = document.getElementById('song-title-input').value;
+            const category = document.getElementById('song-category-input').value;
+            const audioUrl = document.getElementById('song-audio-input').value || '#';
+            const videoUrl = document.getElementById('song-video-input').value || '#';
+            const lyrics = document.getElementById('song-lyrics-input').value;
+
+            if (id) {
+                // Update existing song
+                songs = songs.map(song => song.id === id ? { ...song, title, category, audioUrl, videoUrl, lyrics } : song);
+            } else {
+                // Add new song
+                const newSong = { id: Date.now().toString(), title, category, audioUrl, videoUrl, lyrics };
+                songs.push(newSong);
+            }
+
+            closeModal();
+            openAndFilterSongs();
         });
     </script>
 </body>
