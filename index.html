@@ -11,10 +11,15 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col">
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col relative">
+
+    <!-- Toast Notification for 5-Tap Counter -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-indigo-600 text-white px-4 py-2.5 rounded-xl shadow-2xl text-xs font-semibold z-50 transition-all opacity-0 pointer-events-none transform translate-y-2">
+        <span id="toast-msg">Tap 4 more times to edit</span>
+    </div>
 
     <!-- Header -->
-    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 shadow-md">
+    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-40 shadow-md">
         <div class="max-w-4xl mx-auto px-4 py-4 flex flex-row justify-between items-center gap-2">
             <a href="#" class="flex items-center space-x-2">
                 <i class="fa-solid fa-music text-indigo-400 text-2xl"></i>
@@ -144,7 +149,6 @@
 
     <!-- App Logic Script -->
     <script>
-        // Optional Supabase credentials (leave as placeholder for local test mode)
         const SUPABASE_URL = 'YOUR_SUPABASE_URL';
         const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
         
@@ -153,13 +157,12 @@
             db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         }
 
-        // Demo sample dataset
         let songs = [
             {
                 id: "1",
                 title: "Amazing Grace",
                 category: "Opening",
-                lyrics: "Amazing grace, how sweet the sound, that saved a wretch like me...",
+                lyrics: "Amazing grace, how sweet the sound, that saved a wretch like me...\nI once was lost, but now am found;\nWas blind, but now I see.",
                 audio_url: "#",
                 video_url: "#"
             },
@@ -167,7 +170,7 @@
                 id: "2",
                 title: "Blessed Assurance",
                 category: "Joyful",
-                lyrics: "Blessed assurance, Jesus is mine! Oh, what a foretaste of glory divine!",
+                lyrics: "Blessed assurance, Jesus is mine!\nOh, what a foretaste of glory divine!\nHeir of salvation, purchase of God,\nBorn of His Spirit, washed in His blood.",
                 audio_url: "#",
                 video_url: "#"
             },
@@ -175,31 +178,7 @@
                 id: "3",
                 title: "How Great Thou Art",
                 category: "Solemn",
-                lyrics: "O Lord my God, when I in awesome wonder, consider all the worlds thy hands have made...",
-                audio_url: "#",
-                video_url: "#"
-            },
-            {
-                id: "4",
-                title: "Take My Life and Let It Be",
-                category: "Offering",
-                lyrics: "Take my life and let it be consecrated, Lord, to thee...",
-                audio_url: "#",
-                video_url: "#"
-            },
-            {
-                id: "5",
-                title: "Abide With Me",
-                category: "Closing",
-                lyrics: "Abide with me; fast falls the eventide; the darkness deepens; Lord with me abide...",
-                audio_url: "#",
-                video_url: "#"
-            },
-            {
-                id: "6",
-                title: "Count Your Blessings",
-                category: "Others",
-                lyrics: "When upon life’s billows you are tempest-tossed, when you are discouraged, thinking all is lost...",
+                lyrics: "O Lord my God, when I in awesome wonder,\nConsider all the worlds Thy hands have made;\nI see the stars, I hear the rolling thunder,\nThy power throughout the universe displayed.",
                 audio_url: "#",
                 video_url: "#"
             }
@@ -221,8 +200,24 @@
         const closeModalBtn = document.getElementById('close-modal-btn');
         const cancelModalBtn = document.getElementById('cancel-modal-btn');
 
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toast-msg');
+        let toastTimeout;
+
+        function showToast(message) {
+            toastMsg.textContent = message;
+            toast.classList.remove('opacity-0', 'translate-y-2');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'translate-y-2');
+            }, 1800);
+        }
+
         async function fetchSongs() {
-            if (!db) return; // Skip if Supabase is not connected yet
+            if (!db) return;
             try {
                 const { data, error } = await db.from('songs').select('*').order('title', { ascending: true });
                 if (!error && data) songs = data;
@@ -243,33 +238,88 @@
             }
 
             songsList.innerHTML = sortedSongs.map(song => `
-                <div class="p-4 bg-slate-800 border border-slate-700/70 rounded-xl hover:border-indigo-500/50 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div class="space-y-1">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <h3 class="font-bold text-lg text-white">${song.title}</h3>
-                            <span class="text-xs px-2.5 py-0.5 bg-indigo-950/80 text-indigo-300 border border-indigo-800/50 rounded-full font-medium">
-                                ${song.category}
-                            </span>
+                <div class="p-4 bg-slate-800 border border-slate-700/70 rounded-xl hover:border-indigo-500/50 transition-all space-y-3">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h3 class="font-bold text-lg text-white">${song.title}</h3>
+                                <span class="text-xs px-2.5 py-0.5 bg-indigo-950/80 text-indigo-300 border border-indigo-800/50 rounded-full font-medium">
+                                    ${song.category}
+                                </span>
+                            </div>
                         </div>
-                        <p class="text-sm text-slate-300 italic line-clamp-2">"${song.lyrics || 'No lyrics provided'}"</p>
+
+                        <!-- Action Buttons -->
+                        <div class="flex items-center gap-2 shrink-0 flex-wrap">
+                            ${song.audio_url ? `
+                            <a href="${song.audio_url}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white border border-emerald-600/30 rounded-lg text-xs font-semibold transition-all">
+                                <i class="fa-solid fa-music"></i> Audio
+                            </a>` : ''}
+
+                            ${song.video_url ? `
+                            <a href="${song.video_url}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-600/30 rounded-lg text-xs font-semibold transition-all">
+                                <i class="fa-solid fa-play"></i> Video
+                            </a>` : ''}
+
+                            <button onclick="toggleLyrics('${song.id}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600/20 text-sky-400 hover:bg-sky-600 hover:text-white border border-sky-600/30 rounded-lg text-xs font-semibold transition-all">
+                                <i class="fa-solid fa-align-left"></i> Lyrics
+                            </button>
+
+                            <button onclick="handleEditTap('${song.id}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white border border-slate-600 rounded-lg text-xs font-semibold transition-all">
+                                <i class="fa-solid fa-pen"></i> Edit
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="flex items-center gap-2 shrink-0">
-                        ${song.audio_url ? `
-                        <a href="${song.audio_url}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white border border-emerald-600/30 rounded-lg text-xs font-semibold transition-all">
-                            <i class="fa-solid fa-music"></i> Audio
-                        </a>` : ''}
-                        ${song.video_url ? `
-                        <a href="${song.video_url}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-600/30 rounded-lg text-xs font-semibold transition-all">
-                            <i class="fa-solid fa-play"></i> Video
-                        </a>` : ''}
-                        <button onclick="editSong('${song.id}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white border border-slate-600 rounded-lg text-xs font-semibold transition-all">
-                            <i class="fa-solid fa-pen"></i> Edit
-                        </button>
+                    <!-- Collapsible Lyrics Section -->
+                    <div id="lyrics-container-${song.id}" class="hidden pt-3 border-t border-slate-700/60 text-slate-300 text-sm whitespace-pre-line font-mono bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+                        ${song.lyrics || 'No lyrics provided.'}
                     </div>
                 </div>
             `).join('');
         }
+
+        window.toggleLyrics = function(id) {
+            const lyricsElement = document.getElementById(`lyrics-container-${id}`);
+            if (lyricsElement) {
+                lyricsElement.classList.toggle('hidden');
+            }
+        };
+
+        // 5 Consecutive Taps Tracker for Editing
+        let tapTracker = {
+            songId: null,
+            count: 0,
+            timer: null
+        };
+
+        window.handleEditTap = function(id) {
+            if (tapTracker.songId === id) {
+                tapTracker.count++;
+            } else {
+                tapTracker.songId = id;
+                tapTracker.count = 1;
+            }
+
+            clearTimeout(tapTracker.timer);
+            
+            // Reset taps if user stops tapping for 2.5 seconds
+            tapTracker.timer = setTimeout(() => {
+                tapTracker.songId = null;
+                tapTracker.count = 0;
+            }, 2500);
+
+            const remaining = 5 - tapTracker.count;
+
+            if (remaining > 0) {
+                showToast(`Tap ${remaining} more time${remaining === 1 ? '' : 's'} to edit`);
+            } else {
+                // 5 Taps Reached! Open Edit
+                tapTracker.songId = null;
+                tapTracker.count = 0;
+                editSong(id);
+            }
+        };
 
         async function openAndFilterSongs() {
             songsContainer.classList.remove('hidden');
@@ -337,56 +387,4 @@
 
         addSongBtn.addEventListener('click', () => openModal(false));
         closeModalBtn.addEventListener('click', closeModal);
-        cancelModalBtn.addEventListener('click', closeModal);
-
-        window.editSong = function(id) {
-            const song = songs.find(s => s.id == id);
-            if (!song) return;
-
-            document.getElementById('song-id').value = song.id;
-            document.getElementById('song-title-input').value = song.title;
-            document.getElementById('song-category-input').value = song.category;
-            document.getElementById('song-audio-input').value = song.audio_url !== '#' ? (song.audio_url || '') : '';
-            document.getElementById('song-video-input').value = song.video_url !== '#' ? (song.video_url || '') : '';
-            document.getElementById('song-lyrics-input').value = song.lyrics || '';
-
-            openModal(true);
-        };
-
-        songForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const id = document.getElementById('song-id').value;
-            const songPayload = {
-                title: document.getElementById('song-title-input').value,
-                category: document.getElementById('song-category-input').value,
-                audio_url: document.getElementById('song-audio-input').value || '#',
-                video_url: document.getElementById('song-video-input').value || '#',
-                lyrics: document.getElementById('song-lyrics-input').value || ''
-            };
-
-            if (db) {
-                try {
-                    if (id) {
-                        await db.from('songs').update(songPayload).eq('id', id);
-                    } else {
-                        await db.from('songs').insert([songPayload]);
-                    }
-                } catch (err) {
-                    console.error('Supabase save error:', err);
-                }
-            } else {
-                // In-memory update for testing mode
-                if (id) {
-                    songs = songs.map(s => s.id == id ? { ...s, ...songPayload } : s);
-                } else {
-                    songs.push({ id: Date.now().toString(), ...songPayload });
-                }
-            }
-
-            closeModal();
-            openAndFilterSongs();
-        });
-    </script>
-</body>
-</html>
+        cancel
