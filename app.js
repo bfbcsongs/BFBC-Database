@@ -3,7 +3,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_nFGA38fcKrTioIZOkAHRrg_MkbZigvw';
 
 let db = null;
 
-// Initial Songs Dataset (approved: true means in main song list, approved: false means in New folder)
+// Initial Songs Dataset
 let songs = [
     {
         id: "1",
@@ -80,7 +80,7 @@ async function fetchSongs() {
 }
 
 function updateNewFolderBadge() {
-    const unapprovedCount = songs.filter(s => s.approved === false).length;
+    const unapprovedCount = songs.filter(s => s.approved === false || s.approved === 'false').length;
     if (newCountBadge) {
         newCountBadge.textContent = unapprovedCount;
     }
@@ -92,10 +92,8 @@ function renderSongs(songsToRender, titleText) {
     let sortedSongs = [...songsToRender];
 
     if (inNewFolderView) {
-        // New folder view: sort by added date (newest first)
         sortedSongs.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
     } else {
-        // Main song list: sorted alphabetically by title
         sortedSongs.sort((a, b) => a.title.localeCompare(b.title));
     }
 
@@ -115,7 +113,7 @@ function renderSongs(songsToRender, titleText) {
                         <span class="text-xs px-2.5 py-0.5 bg-indigo-950/80 text-indigo-300 border border-indigo-800/50 rounded-full font-medium">
                             ${song.category}
                         </span>
-                        ${song.approved === false ? `<span class="text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full font-bold">Unapproved</span>` : ''}
+                        ${(song.approved === false || song.approved === 'false') ? `<span class="text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full font-bold">Unapproved</span>` : ''}
                     </div>
                 </div>
 
@@ -138,7 +136,6 @@ function renderSongs(songsToRender, titleText) {
                         <i class="fa-solid fa-pen"></i> Edit
                     </button>
 
-                    <!-- Thumbs Up Icon (Tap 5 times consecutively to approve) -->
                     <button onclick="handleThumbsUpTap('${song.id}')" title="Tap 5 times to approve" class="flex items-center justify-center p-2 bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-slate-900 border border-amber-500/30 rounded-lg transition-all cursor-pointer">
                         <i class="fa-solid fa-thumbs-up text-sm"></i>
                     </button>
@@ -159,7 +156,6 @@ window.toggleLyrics = function(id) {
     }
 };
 
-// 5 Consecutive Taps Tracker for Editing
 let tapTracker = { songId: null, count: 0, timer: null };
 
 window.handleEditTap = function(id) {
@@ -183,7 +179,6 @@ window.handleEditTap = function(id) {
     }
 };
 
-// 5 Consecutive Taps Tracker for Thumbs Up Approval
 let thumbsTapTracker = { songId: null, count: 0, timer: null };
 
 window.handleThumbsUpTap = async function(id) {
@@ -200,7 +195,6 @@ window.handleThumbsUpTap = async function(id) {
         thumbsTapTracker.count = 0;
     }, 2500);
 
-    // On 5th consecutive tap: Approve song automatically
     if (thumbsTapTracker.count >= 5) {
         thumbsTapTracker.songId = null;
         thumbsTapTracker.count = 0;
@@ -230,19 +224,23 @@ function filterAndShowSongs() {
     let filtered = [];
 
     if (inNewFolderView) {
-        // Strictly show songs where approved === false
         filtered = songs.filter(song => {
-            const isUnapproved = song.approved === false;
+            const isUnapproved = (song.approved === false || song.approved === 'false');
             const matchesSearch = song.title.toLowerCase().includes(query) || (song.lyrics && song.lyrics.toLowerCase().includes(query));
             return isUnapproved && matchesSearch;
         });
         renderSongs(filtered, query ? `New Folder matching "${query}"` : "New Songs Folder");
     } else {
-        // Strictly show approved songs in main database
         filtered = songs.filter(song => {
-            const isApproved = song.approved !== false;
+            // Include approved songs or songs without explicit false flags
+            const isApproved = song.approved !== false && song.approved !== 'false';
             const matchesSearch = song.title.toLowerCase().includes(query) || (song.lyrics && song.lyrics.toLowerCase().includes(query));
-            const matchesCategory = activeCategory ? song.category === activeCategory : true;
+            
+            // Flexible category match (case-insensitive & trimmed)
+            const matchesCategory = activeCategory 
+                ? (song.category && song.category.trim().toLowerCase() === activeCategory.trim().toLowerCase())
+                : true;
+
             return isApproved && matchesSearch && matchesCategory;
         });
 
@@ -262,7 +260,6 @@ function clearCategorySelection() {
     });
 }
 
-// Handle New Folder Button Toggle
 newFolderBtn.addEventListener('click', () => {
     inNewFolderView = true;
     clearCategorySelection();
@@ -348,14 +345,13 @@ songForm.addEventListener('submit', async (e) => {
     const lyrics = document.getElementById('song-lyrics-input').value || '';
 
     if (isNew) {
-        // FORCE NEW SONGS TO NEW FOLDER ONLY
         const newSong = {
             title,
             category,
             audio_url,
             video_url,
             lyrics,
-            approved: false, // Forces landing into 'New Songs Folder'
+            approved: false,
             created_at: Date.now()
         };
 
@@ -370,14 +366,12 @@ songForm.addEventListener('submit', async (e) => {
             songs.push({ id: Date.now().toString(), ...newSong });
         }
 
-        // Switch screen view directly to New Songs Folder to show the newly added song
         inNewFolderView = true;
         newFolderBtn.classList.remove('bg-amber-500/20', 'text-amber-300');
         newFolderBtn.classList.add('bg-amber-500', 'text-slate-900');
         clearCategorySelection();
 
     } else {
-        // EDIT EXISTING SONG
         if (db) {
             try {
                 await db.from('songs').update({ title, category, audio_url, video_url, lyrics }).eq('id', id);
@@ -395,7 +389,6 @@ songForm.addEventListener('submit', async (e) => {
     filterAndShowSongs();
 });
 
-// Initialize on load
 window.addEventListener('DOMContentLoaded', async () => {
     initSupabase();
     await fetchSongs();
