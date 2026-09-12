@@ -1,3 +1,5 @@
+https://qxnrogteskdwvrxztwvx.supabase.co/rest/v1/
+sb_publishable_nFGA38fcKrTioIZOkAHRrg_MkbZigvw
 const SUPABASE_URL = 'YOUR_SUPABASE_URL';
 const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
