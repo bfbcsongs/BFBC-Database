@@ -81,7 +81,7 @@
             </div>
 
             <div id="songs-list" class="space-y-3">
-                <!-- Dynamic song items loaded from Supabase -->
+                <!-- Songs render here -->
             </div>
         </section>
 
@@ -144,16 +144,67 @@
 
     <!-- App Logic Script -->
     <script>
-        // -------------------------------------------------------------
-        // 1. SUPABASE INITIALIZATION
-        // REPLACE THESE TWO VALUES WITH YOUR SUPABASE PROJECT CREDENTIALS
-        // -------------------------------------------------------------
+        // Optional Supabase credentials (leave as placeholder for local test mode)
         const SUPABASE_URL = 'YOUR_SUPABASE_URL';
         const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
         
-        const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let db = null;
+        if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && typeof supabase !== 'undefined') {
+            db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
 
-        let songs = []; // Local cache fetched from Supabase
+        // Demo sample dataset
+        let songs = [
+            {
+                id: "1",
+                title: "Amazing Grace",
+                category: "Opening",
+                lyrics: "Amazing grace, how sweet the sound, that saved a wretch like me...",
+                audio_url: "#",
+                video_url: "#"
+            },
+            {
+                id: "2",
+                title: "Blessed Assurance",
+                category: "Joyful",
+                lyrics: "Blessed assurance, Jesus is mine! Oh, what a foretaste of glory divine!",
+                audio_url: "#",
+                video_url: "#"
+            },
+            {
+                id: "3",
+                title: "How Great Thou Art",
+                category: "Solemn",
+                lyrics: "O Lord my God, when I in awesome wonder, consider all the worlds thy hands have made...",
+                audio_url: "#",
+                video_url: "#"
+            },
+            {
+                id: "4",
+                title: "Take My Life and Let It Be",
+                category: "Offering",
+                lyrics: "Take my life and let it be consecrated, Lord, to thee...",
+                audio_url: "#",
+                video_url: "#"
+            },
+            {
+                id: "5",
+                title: "Abide With Me",
+                category: "Closing",
+                lyrics: "Abide with me; fast falls the eventide; the darkness deepens; Lord with me abide...",
+                audio_url: "#",
+                video_url: "#"
+            },
+            {
+                id: "6",
+                title: "Count Your Blessings",
+                category: "Others",
+                lyrics: "When upon life’s billows you are tempest-tossed, when you are discouraged, thinking all is lost...",
+                audio_url: "#",
+                video_url: "#"
+            }
+        ];
+
         let activeCategory = null;
 
         const searchInput = document.getElementById('search-input');
@@ -170,22 +221,16 @@
         const closeModalBtn = document.getElementById('close-modal-btn');
         const cancelModalBtn = document.getElementById('cancel-modal-btn');
 
-        // Fetch Songs from Supabase Table 'songs'
         async function fetchSongs() {
+            if (!db) return; // Skip if Supabase is not connected yet
             try {
-                const { data, error } = await db
-                    .from('songs')
-                    .select('*')
-                    .order('title', { ascending: true });
-
-                if (error) throw error;
-                songs = data || [];
+                const { data, error } = await db.from('songs').select('*').order('title', { ascending: true });
+                if (!error && data) songs = data;
             } catch (err) {
-                console.error('Error fetching songs from Supabase:', err);
+                console.log('Using local dataset');
             }
         }
 
-        // Render song cards
         function renderSongs(songsToRender, titleText) {
             listHeader.textContent = titleText;
             
@@ -228,7 +273,7 @@
 
         async function openAndFilterSongs() {
             songsContainer.classList.remove('hidden');
-            await fetchSongs(); // Sync latest data
+            await fetchSongs();
 
             const query = searchInput.value.toLowerCase().trim();
             
@@ -301,14 +346,13 @@
             document.getElementById('song-id').value = song.id;
             document.getElementById('song-title-input').value = song.title;
             document.getElementById('song-category-input').value = song.category;
-            document.getElementById('song-audio-input').value = song.audio_url || '';
-            document.getElementById('song-video-input').value = song.video_url || '';
+            document.getElementById('song-audio-input').value = song.audio_url !== '#' ? (song.audio_url || '') : '';
+            document.getElementById('song-video-input').value = song.video_url !== '#' ? (song.video_url || '') : '';
             document.getElementById('song-lyrics-input').value = song.lyrics || '';
 
             openModal(true);
         };
 
-        // Save/Insert into Supabase
         songForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -316,38 +360,33 @@
             const songPayload = {
                 title: document.getElementById('song-title-input').value,
                 category: document.getElementById('song-category-input').value,
-                audio_url: document.getElementById('song-audio-input').value || null,
-                video_url: document.getElementById('song-video-input').value || null,
-                lyrics: document.getElementById('song-lyrics-input').value || null
+                audio_url: document.getElementById('song-audio-input').value || '#',
+                video_url: document.getElementById('song-video-input').value || '#',
+                lyrics: document.getElementById('song-lyrics-input').value || ''
             };
 
-            try {
-                if (id) {
-                    // Update existing song
-                    const { error } = await db
-                        .from('songs')
-                        .update(songPayload)
-                        .eq('id', id);
-
-                    if (error) throw error;
-                } else {
-                    // Insert new song
-                    const { error } = await db
-                        .from('songs')
-                        .insert([songPayload]);
-
-                    if (error) throw error;
+            if (db) {
+                try {
+                    if (id) {
+                        await db.from('songs').update(songPayload).eq('id', id);
+                    } else {
+                        await db.from('songs').insert([songPayload]);
+                    }
+                } catch (err) {
+                    console.error('Supabase save error:', err);
                 }
-
-                closeModal();
-                openAndFilterSongs();
-            } catch (err) {
-                alert('Error saving song: ' + err.message);
+            } else {
+                // In-memory update for testing mode
+                if (id) {
+                    songs = songs.map(s => s.id == id ? { ...s, ...songPayload } : s);
+                } else {
+                    songs.push({ id: Date.now().toString(), ...songPayload });
+                }
             }
-        });
 
-        // Initial background fetch
-        fetchSongs();
+            closeModal();
+            openAndFilterSongs();
+        });
     </script>
 </body>
-                            </html>
+</html>
