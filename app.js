@@ -1,21 +1,15 @@
-// ==========================================
-// 1. SUPABASE CONFIGURATION & INITIALIZATION
-// ==========================================
-const SUPABASE_URL = 'https://qxnrogteskdwvrxztwvx.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_nFGA38fcKrTioIZOkAHRrg_MkbZigvw';
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
-// Safely initialize Supabase client
-const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+let db = null;
 
-// ==========================================
-// 2. INITIAL DATASET & STATE MANAGEMENT
-// ==========================================
-let songs = JSON.parse(localStorage.getItem('bfbc_songs')) || [
+// Initial Songs Dataset (approved: true means in main song list, approved: false means in New folder)
+let songs = [
     {
         id: "1",
         title: "Amazing Grace",
         category: "Opening",
-        lyrics: "Amazing grace, how sweet the sound...",
+        lyrics: "Amazing grace, how sweet the sound, that saved a wretch like me...\nI once was lost, but now am found;\nWas blind, but now I see.",
         audio_url: "https://example.com/audio",
         video_url: "https://example.com/video",
         approved: true,
@@ -25,192 +19,385 @@ let songs = JSON.parse(localStorage.getItem('bfbc_songs')) || [
         id: "2",
         title: "Blessed Assurance",
         category: "Joyful",
-        lyrics: "Blessed assurance, Jesus is mine...",
+        lyrics: "Blessed assurance, Jesus is mine!\nOh, what a foretaste of glory divine!\nHeir of salvation, purchase of God,\nBorn of His Spirit, washed in His blood.",
         audio_url: "https://example.com/audio",
         video_url: "https://example.com/video",
         approved: true,
-        created_at: Date.now() - 600000
+        created_at: Date.now() - 200000
+    },
+    {
+        id: "3",
+        title: "How Great Thou Art",
+        category: "Solemn",
+        lyrics: "O Lord my God, when I in awesome wonder,\nConsider all the worlds Thy hands have made;\nI see the stars, I hear the rolling thunder,\nThy power throughout the universe displayed.",
+        audio_url: "https://example.com/audio",
+        video_url: "https://example.com/video",
+        approved: true,
+        created_at: Date.now() - 100000
     }
 ];
 
-// Save to localStorage helper
-function saveToLocalStorage() {
-    localStorage.setItem('bfbc_songs', JSON.stringify(songs));
+let activeCategory = null;
+let inNewFolderView = false;
+
+const searchInput = document.getElementById('search-input');
+const categoryButtons = document.querySelectorAll('.category-btn');
+const newFolderBtn = document.getElementById('new-folder-btn');
+const newCountBadge = document.getElementById('new-count-badge');
+const songsContainer = document.getElementById('songs-container');
+const songsList = document.getElementById('songs-list');
+const songCount = document.getElementById('song-count');
+const listHeader = document.getElementById('list-header');
+
+const songModal = document.getElementById('song-modal');
+const modalTitle = document.getElementById('modal-title');
+const songForm = document.getElementById('song-form');
+const addSongBtn = document.getElementById('add-song-btn');
+const closeModalBtn = document.getElementById('close-modal-btn');
+const cancelModalBtn = document.getElementById('cancel-modal-btn');
+
+function initSupabase() {
+    if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && typeof supabase !== 'undefined') {
+        try {
+            db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } catch(e) {
+            console.log('Supabase not configured yet');
+        }
+    }
 }
 
-// Save initial set if empty
-if (!localStorage.getItem('bfbc_songs')) {
-    saveToLocalStorage();
-}
-
-// ==========================================
-// 3. SUPABASE SYNC LOGIC
-// ==========================================
-async function fetchSongsFromSupabase() {
-    if (!supabaseClient) return;
-    
+async function fetchSongs() {
+    if (!db) return;
     try {
-        const { data, error } = await supabaseClient
-            .from('songs')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        if (data && data.length > 0) {
+        const { data, error } = await db.from('songs').select('*').order('created_at', { ascending: false });
+        if (!error && data && data.length > 0) {
             songs = data;
-            saveToLocalStorage();
-            renderSongList();
         }
     } catch (err) {
-        console.warn('Offline or Supabase fetch error, using local cached data:', err.message);
+        console.log('Using local dataset');
+    }
+    updateNewFolderBadge();
+}
+
+function updateNewFolderBadge() {
+    const unapprovedCount = songs.filter(s => s.approved === false).length;
+    if (newCountBadge) {
+        newCountBadge.textContent = unapprovedCount;
     }
 }
 
-async function addSongToSupabase(newSong) {
-    if (!supabaseClient) return;
+function renderSongs(songsToRender, titleText) {
+    listHeader.textContent = titleText;
+    
+    let sortedSongs = [...songsToRender];
 
-    try {
-        const { error } = await supabaseClient
-            .from('songs')
-            .insert([newSong]);
-
-        if (error) throw error;
-        console.log('Song successfully synced to Supabase!');
-    } catch (err) {
-        console.warn('Could not sync to cloud immediately. Local copy saved.', err.message);
+    if (inNewFolderView) {
+        // New folder view: sort by added date (newest first)
+        sortedSongs.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+    } else {
+        // Main song list: sorted alphabetically by title
+        sortedSongs.sort((a, b) => a.title.localeCompare(b.title));
     }
-}
 
-// ==========================================
-// 4. UI RENDER FUNCTIONS & EVENT LISTENERS
-// ==========================================
-function renderHeaderActions() {
-    const headerActions = document.getElementById('header-actions');
-    if (!headerActions) return;
+    songCount.textContent = `${sortedSongs.length} song${sortedSongs.length === 1 ? '' : 's'} found`;
 
-    headerActions.innerHTML = `
-        <button id="add-song-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm transition">
-            <i class="fa-solid fa-plus"></i> Add Song
-        </button>
-    `;
-
-    document.getElementById('add-song-btn').addEventListener('click', openAddSongModal);
-}
-
-function renderSongList() {
-    const mainContent = document.getElementById('main-content');
-    if (!mainContent) return;
-
-    if (songs.length === 0) {
-        mainContent.innerHTML = `<p class="text-slate-400 text-center py-8">No songs found. Tap "+ Add Song" to create one.</p>`;
+    if (sortedSongs.length === 0) {
+        songsList.innerHTML = `<p class="text-center text-slate-500 py-8">No songs found in this view.</p>`;
         return;
     }
 
-    const songCardsHtml = songs.map(song => `
-        <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 mb-4 shadow-sm hover:border-slate-600 transition">
-            <div class="flex justify-between items-start mb-2">
-                <h2 class="text-lg font-bold text-white">${escapeHtml(song.title)}</h2>
-                <span class="bg-indigo-900/60 text-indigo-300 text-xs px-2.5 py-1 rounded-full font-medium border border-indigo-700/50">
-                    ${escapeHtml(song.category)}
-                </span>
+    songsList.innerHTML = sortedSongs.map(song => `
+        <div class="p-4 bg-slate-800 border border-slate-700/70 rounded-xl hover:border-indigo-500/50 transition-all space-y-3">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h3 class="font-bold text-lg text-white">${song.title}</h3>
+                        <span class="text-xs px-2.5 py-0.5 bg-indigo-950/80 text-indigo-300 border border-indigo-800/50 rounded-full font-medium">
+                            ${song.category}
+                        </span>
+                        ${song.approved === false ? `<span class="text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full font-bold">Unapproved</span>` : ''}
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0 flex-wrap">
+                    ${song.audio_url && song.audio_url !== '#' ? `
+                    <a href="${song.audio_url}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white border border-emerald-600/30 rounded-lg text-xs font-semibold transition-all">
+                        <i class="fa-solid fa-music"></i> Audio
+                    </a>` : ''}
+
+                    ${song.video_url && song.video_url !== '#' ? `
+                    <a href="${song.video_url}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-600/30 rounded-lg text-xs font-semibold transition-all">
+                        <i class="fa-solid fa-play"></i> Video
+                    </a>` : ''}
+
+                    <button onclick="toggleLyrics('${song.id}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600/20 text-sky-400 hover:bg-sky-600 hover:text-white border border-sky-600/30 rounded-lg text-xs font-semibold transition-all cursor-pointer">
+                        <i class="fa-solid fa-align-left"></i> Lyrics
+                    </button>
+
+                    <button onclick="handleEditTap('${song.id}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white border border-slate-600 rounded-lg text-xs font-semibold transition-all cursor-pointer">
+                        <i class="fa-solid fa-pen"></i> Edit
+                    </button>
+
+                    <!-- Thumbs Up Icon (Tap 5 times consecutively to approve) -->
+                    <button onclick="handleThumbsUpTap('${song.id}')" title="Tap 5 times to approve" class="flex items-center justify-center p-2 bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-slate-900 border border-amber-500/30 rounded-lg transition-all cursor-pointer">
+                        <i class="fa-solid fa-thumbs-up text-sm"></i>
+                    </button>
+                </div>
             </div>
-            <p class="text-slate-300 text-sm whitespace-pre-line mb-3 font-mono bg-slate-900/50 p-3 rounded-lg border border-slate-800">
-                ${escapeHtml(song.lyrics || 'No lyrics provided.')}
-            </p>
-            <div class="flex items-center gap-4 text-xs text-slate-400">
-                ${song.audio_url ? `<a href="${escapeHtml(song.audio_url)}" target="_blank" class="text-indigo-400 hover:underline flex items-center gap-1"><i class="fa-solid fa-music"></i> Audio</a>` : ''}
-                ${song.video_url ? `<a href="${escapeHtml(song.video_url)}" target="_blank" class="text-indigo-400 hover:underline flex items-center gap-1"><i class="fa-solid fa-video"></i> Video</a>` : ''}
+
+            <div id="lyrics-container-${song.id}" class="hidden pt-3 border-t border-slate-700/60 text-slate-300 text-sm whitespace-pre-line font-mono bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+                ${song.lyrics || 'No lyrics provided.'}
             </div>
         </div>
     `).join('');
-
-    mainContent.innerHTML = songCardsHtml;
 }
 
-function openAddSongModal() {
-    const modalHtml = `
-        <div id="modal-backdrop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div class="bg-slate-800 border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-xl text-slate-100">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-bold text-white">Add New Song</h3>
-                    <button id="close-modal-btn" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
-                </div>
-                <form id="song-form" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1">Title</label>
-                        <input type="text" id="song-title" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1">Category</label>
-                        <input type="text" id="song-category" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1">Lyrics</label>
-                        <textarea id="song-lyrics" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"></textarea>
-                    </div>
-                    <div class="flex justify-end gap-3 pt-2">
-                        <button type="button" id="cancel-modal-btn" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm">Cancel</button>
-                        <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium">Save Song</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    `;
+window.toggleLyrics = function(id) {
+    const lyricsElement = document.getElementById(`lyrics-container-${id}`);
+    if (lyricsElement) {
+        lyricsElement.classList.toggle('hidden');
+    }
+};
 
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
+// 5 Consecutive Taps Tracker for Editing
+let tapTracker = { songId: null, count: 0, timer: null };
 
-    document.getElementById('close-modal-btn').addEventListener('click', closeModal);
-    document.getElementById('cancel-modal-btn').addEventListener('click', closeModal);
-    document.getElementById('song-form').addEventListener('submit', handleAddSongSubmit);
+window.handleEditTap = function(id) {
+    if (tapTracker.songId === id) {
+        tapTracker.count++;
+    } else {
+        tapTracker.songId = id;
+        tapTracker.count = 1;
+    }
+
+    clearTimeout(tapTracker.timer);
+    tapTracker.timer = setTimeout(() => {
+        tapTracker.songId = null;
+        tapTracker.count = 0;
+    }, 2500);
+
+    if (tapTracker.count >= 5) {
+        tapTracker.songId = null;
+        tapTracker.count = 0;
+        editSong(id);
+    }
+};
+
+// 5 Consecutive Taps Tracker for Thumbs Up Approval
+let thumbsTapTracker = { songId: null, count: 0, timer: null };
+
+window.handleThumbsUpTap = async function(id) {
+    if (thumbsTapTracker.songId === id) {
+        thumbsTapTracker.count++;
+    } else {
+        thumbsTapTracker.songId = id;
+        thumbsTapTracker.count = 1;
+    }
+
+    clearTimeout(thumbsTapTracker.timer);
+    thumbsTapTracker.timer = setTimeout(() => {
+        thumbsTapTracker.songId = null;
+        thumbsTapTracker.count = 0;
+    }, 2500);
+
+    // On 5th consecutive tap: Approve song automatically
+    if (thumbsTapTracker.count >= 5) {
+        thumbsTapTracker.songId = null;
+        thumbsTapTracker.count = 0;
+        await approveSong(id);
+    }
+};
+
+async function approveSong(id) {
+    if (db) {
+        try {
+            await db.from('songs').update({ approved: true }).eq('id', id);
+            await fetchSongs();
+        } catch (err) {
+            console.error('Approval error:', err);
+        }
+    } else {
+        songs = songs.map(s => s.id == id ? { ...s, approved: true } : s);
+    }
+    updateNewFolderBadge();
+    filterAndShowSongs();
 }
 
-function closeModal() {
-    const modal = document.getElementById('modal-backdrop');
-    if (modal) modal.remove();
+function filterAndShowSongs() {
+    songsContainer.classList.remove('hidden');
+    const query = searchInput.value.toLowerCase().trim();
+
+    let filtered = [];
+
+    if (inNewFolderView) {
+        // Strictly show songs where approved === false
+        filtered = songs.filter(song => {
+            const isUnapproved = song.approved === false;
+            const matchesSearch = song.title.toLowerCase().includes(query) || (song.lyrics && song.lyrics.toLowerCase().includes(query));
+            return isUnapproved && matchesSearch;
+        });
+        renderSongs(filtered, query ? `New Folder matching "${query}"` : "New Songs Folder");
+    } else {
+        // Strictly show approved songs in main database
+        filtered = songs.filter(song => {
+            const isApproved = song.approved !== false;
+            const matchesSearch = song.title.toLowerCase().includes(query) || (song.lyrics && song.lyrics.toLowerCase().includes(query));
+            const matchesCategory = activeCategory ? song.category === activeCategory : true;
+            return isApproved && matchesSearch && matchesCategory;
+        });
+
+        const headerLabel = activeCategory 
+            ? (query ? `${activeCategory} Songs matching "${query}"` : `${activeCategory} Songs`)
+            : (query ? `Results for "${query}"` : "All Songs");
+
+        renderSongs(filtered, headerLabel);
+    }
 }
 
-async function handleAddSongSubmit(e) {
-    e.preventDefault();
-
-    const title = document.getElementById('song-title').value.trim();
-    const category = document.getElementById('song-category').value.trim();
-    const lyrics = document.getElementById('song-lyrics').value.trim();
-
-    if (!title || !category) return;
-
-    const newSong = {
-        title: title,
-        category: category,
-        lyrics: lyrics,
-        audio_url: '',
-        video_url: '',
-        approved: true,
-        created_at: Date.now()
-    };
-
-    // 1. Update UI & localStorage immediately for instant offline reactivity
-    songs.unshift(newSong);
-    saveToLocalStorage();
-    renderSongList();
-    closeModal();
-
-    // 2. Sync asynchronously to Supabase cloud
-    await addSongToSupabase(newSong);
-}
-
-function escapeHtml(str) {
-    return String(str || '').replace(/[&<>"']/g, match => {
-        const escapeMap = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-        return escapeMap[match];
+function clearCategorySelection() {
+    activeCategory = null;
+    categoryButtons.forEach(btn => {
+        btn.classList.remove('bg-indigo-600', 'text-white');
+        btn.classList.add('bg-slate-800', 'text-slate-300');
     });
 }
 
-// ==========================================
-// 5. APPLICATION INITIALIZATION
-// ==========================================
-document.addEventListener('DOMContentLoaded', () => {
-    renderHeaderActions();
-    renderSongList();
-    fetchSongsFromSupabase();
+// Handle New Folder Button Toggle
+newFolderBtn.addEventListener('click', () => {
+    inNewFolderView = true;
+    clearCategorySelection();
+
+    newFolderBtn.classList.remove('bg-amber-500/20', 'text-amber-300');
+    newFolderBtn.classList.add('bg-amber-500', 'text-slate-900');
+
+    filterAndShowSongs();
+});
+
+searchInput.addEventListener('click', () => {
+    inNewFolderView = false;
+    newFolderBtn.classList.remove('bg-amber-500', 'text-slate-900');
+    newFolderBtn.classList.add('bg-amber-500/20', 'text-amber-300');
+    clearCategorySelection();
+    filterAndShowSongs();
+});
+
+searchInput.addEventListener('input', () => {
+    filterAndShowSongs();
+});
+
+categoryButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        inNewFolderView = false;
+        newFolderBtn.classList.remove('bg-amber-500', 'text-slate-900');
+        newFolderBtn.classList.add('bg-amber-500/20', 'text-amber-300');
+
+        const category = button.getAttribute('data-category');
+
+        if (activeCategory === category) {
+            clearCategorySelection();
+        } else {
+            clearCategorySelection();
+            activeCategory = category;
+            button.classList.remove('bg-slate-800', 'text-slate-300');
+            button.classList.add('bg-indigo-600', 'text-white');
+        }
+
+        filterAndShowSongs();
+    });
+});
+
+function openModal(isEdit = false) {
+    modalTitle.textContent = isEdit ? "Edit Song" : "Add New Song";
+    songModal.classList.remove('hidden');
+}
+
+function closeModal() {
+    songModal.classList.add('hidden');
+    songForm.reset();
+    document.getElementById('song-id').value = '';
+}
+
+addSongBtn.addEventListener('click', () => openModal(false));
+closeModalBtn.addEventListener('click', closeModal);
+cancelModalBtn.addEventListener('click', closeModal);
+
+function editSong(id) {
+    const song = songs.find(s => s.id == id);
+    if (!song) return;
+
+    document.getElementById('song-id').value = song.id;
+    document.getElementById('song-title-input').value = song.title;
+    document.getElementById('song-category-input').value = song.category;
+    document.getElementById('song-audio-input').value = song.audio_url !== '#' ? (song.audio_url || '') : '';
+    document.getElementById('song-video-input').value = song.video_url !== '#' ? (song.video_url || '') : '';
+    document.getElementById('song-lyrics-input').value = song.lyrics || '';
+
+    openModal(true);
+}
+
+songForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const id = document.getElementById('song-id').value;
+    const isNew = !id;
+
+    const title = document.getElementById('song-title-input').value;
+    const category = document.getElementById('song-category-input').value;
+    const audio_url = document.getElementById('song-audio-input').value || '';
+    const video_url = document.getElementById('song-video-input').value || '';
+    const lyrics = document.getElementById('song-lyrics-input').value || '';
+
+    if (isNew) {
+        // FORCE NEW SONGS TO NEW FOLDER ONLY
+        const newSong = {
+            title,
+            category,
+            audio_url,
+            video_url,
+            lyrics,
+            approved: false, // Forces landing into 'New Songs Folder'
+            created_at: Date.now()
+        };
+
+        if (db) {
+            try {
+                await db.from('songs').insert([newSong]);
+                await fetchSongs();
+            } catch (err) {
+                console.error('Supabase insert error:', err);
+            }
+        } else {
+            songs.push({ id: Date.now().toString(), ...newSong });
+        }
+
+        // Switch screen view directly to New Songs Folder to show the newly added song
+        inNewFolderView = true;
+        newFolderBtn.classList.remove('bg-amber-500/20', 'text-amber-300');
+        newFolderBtn.classList.add('bg-amber-500', 'text-slate-900');
+        clearCategorySelection();
+
+    } else {
+        // EDIT EXISTING SONG
+        if (db) {
+            try {
+                await db.from('songs').update({ title, category, audio_url, video_url, lyrics }).eq('id', id);
+                await fetchSongs();
+            } catch (err) {
+                console.error('Supabase update error:', err);
+            }
+        } else {
+            songs = songs.map(s => s.id == id ? { ...s, title, category, audio_url, video_url, lyrics } : s);
+        }
+    }
+
+    updateNewFolderBadge();
+    closeModal();
+    filterAndShowSongs();
+});
+
+// Initialize on load
+window.addEventListener('DOMContentLoaded', async () => {
+    initSupabase();
+    await fetchSongs();
+    filterAndShowSongs();
 });
