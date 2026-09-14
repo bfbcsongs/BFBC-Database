@@ -44,6 +44,31 @@
     <!-- Main Mobile Container -->
     <main class="max-w-md mx-auto px-4 py-4 space-y-4">
 
+        <!-- ================= TIPA TRIGGER & LIVE TIMELINE ================= -->
+  <!-- 1. TIPA Button -->
+  <div class="flex justify-end my-3">
+    <button onclick="openTipaModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 transition active:scale-95 cursor-pointer">
+      <i class="fa-solid fa-guitar"></i> TIPA Mapper
+    </button>
+  </div>
+
+  <!-- 2. Saved Timeline Bar (Lalabas lang kapag may na-save na project) -->
+  <div id="tipa-saved-container" class="hidden bg-slate-800 border border-slate-700/80 rounded-2xl p-4 shadow-xl space-y-3 my-4">
+    <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+      <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+        <i class="fa-solid fa-sliders"></i> TIPA Live Sync Timeline
+      </span>
+      <button onclick="openTipaModal()" class="text-[11px] text-amber-400 hover:underline font-bold">Edit Project</button>
+    </div>
+
+    <div class="bg-slate-900 border border-slate-700 rounded-xl p-3 text-center">
+      <div id="tipa-live-chord" class="text-3xl font-black text-indigo-400 font-mono">--</div>
+      <div id="tipa-live-time" class="text-[10px] font-mono text-slate-500 mt-0.5">00:00.0</div>
+    </div>
+
+    <div id="tipa-live-bar" class="flex gap-1.5 overflow-x-auto pb-2 text-xs font-mono"></div>
+  </div>
+  <!-- ================================================================ -->
         <!-- Search Bar -->
         <div class="relative">
             <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
@@ -163,6 +188,65 @@
         .catch(err => console.error('SW registration failed!', err));
     });
   }
-</script>
+</script><!-- ================= TIPA MODAL WINDOW ================= -->
+  <div id="tipa-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-4 space-y-4 shadow-2xl relative">
+      
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h2 class="text-sm font-bold text-indigo-400 flex items-center gap-2">
+          <i class="fa-solid fa-guitar"></i> TIPA Chord Mapper
+        </h2>
+        <button onclick="closeTipaModal()" class="text-slate-400 hover:text-white text-lg font-bold px-2">&times;</button>
+      </div>
+
+      <!-- Mode Switcher -->
+      <div class="grid grid-cols-2 gap-2">
+        <button id="tipa-btn-edit" onclick="setTipaMode('edit')" class="py-2 text-xs font-bold rounded-xl bg-amber-600 text-white shadow">Edit Mode</button>
+        <button id="tipa-btn-preview" onclick="setTipaMode('preview')" class="py-2 text-xs font-bold rounded-xl bg-slate-800 text-slate-400">Preview Mode</button>
+      </div>
+
+      <!-- Edit Controls -->
+      <div id="tipa-edit-pad" class="space-y-3 bg-slate-800 border border-slate-700/80 p-3 rounded-xl">
+        <span class="text-[10px] font-bold text-slate-400 uppercase block">Tap Chord to Register Timestamp:</span>
+        <div class="grid grid-cols-7 gap-1">
+          <button onclick="tapTipaChord('C')" class="bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-lg text-xs font-bold active:scale-90 text-white">C</button>
+          <button onclick="tapTipaChord('D')" class="bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-lg text-xs font-bold active:scale-90 text-white">D</button>
+          <button onclick="tapTipaChord('E')" class="bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-lg text-xs font-bold active:scale-90 text-white">E</button>
+          <button onclick="tapTipaChord('F')" class="bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-lg text-xs font-bold active:scale-90 text-white">F</button>
+          <button onclick="tapTipaChord('G')" class="bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-lg text-xs font-bold active:scale-90 text-white">G</button>
+          <button onclick="tapTipaChord('A')" class="bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-lg text-xs font-bold active:scale-90 text-white">A</button>
+          <button onclick="tapTipaChord('B')" class="bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-lg text-xs font-bold active:scale-90 text-white">B</button>
+        </div>
+        <div class="grid grid-cols-7 gap-1">
+          <button onclick="tapTipaChord('Cm')" class="bg-slate-700 hover:bg-slate-600 py-2 rounded-lg text-xs font-bold active:scale-90 text-slate-200">Cm</button>
+          <button onclick="tapTipaChord('Dm')" class="bg-slate-700 hover:bg-slate-600 py-2 rounded-lg text-xs font-bold active:scale-90 text-slate-200">Dm</button>
+          <button onclick="tapTipaChord('Em')" class="bg-slate-700 hover:bg-slate-600 py-2 rounded-lg text-xs font-bold active:scale-90 text-slate-200">Em</button>
+          <button onclick="tapTipaChord('Fm')" class="bg-slate-700 hover:bg-slate-600 py-2 rounded-lg text-xs font-bold active:scale-90 text-slate-200">Fm</button>
+          <button onclick="tapTipaChord('Gm')" class="bg-slate-700 hover:bg-slate-600 py-2 rounded-lg text-xs font-bold active:scale-90 text-slate-200">Gm</button>
+          <button onclick="tapTipaChord('Am')" class="bg-slate-700 hover:bg-slate-600 py-2 rounded-lg text-xs font-bold active:scale-90 text-slate-200">Am</button>
+          <button onclick="tapTipaChord('Bm')" class="bg-slate-700 hover:bg-slate-600 py-2 rounded-lg text-xs font-bold active:scale-90 text-slate-200">Bm</button>
+        </div>
+      </div>
+
+      <!-- Live Draft Timeline -->
+      <div class="bg-slate-800 border border-slate-700 p-3 rounded-xl space-y-1.5">
+        <span class="text-[10px] font-bold text-slate-400 uppercase block">Current Working Timeline:</span>
+        <div id="tipa-draft-timeline" class="flex gap-1.5 overflow-x-auto pb-1 text-xs font-mono min-h-[36px]">
+          <span class="text-slate-500 text-[11px]">No registered taps yet.</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center justify-between border-t border-slate-800 pt-3">
+        <button onclick="deleteTipaProject()" class="bg-red-950 text-red-400 border border-red-800 px-3 py-2 rounded-xl text-xs font-bold hover:bg-red-900 transition">Delete</button>
+        <div class="flex gap-2">
+          <button onclick="closeTipaModal()" class="bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-600 transition">Exit</button>
+          <button onclick="saveTipaProject()" class="bg-emerald-600 text-white px-5 py-2 rounded-xl text-xs font-bold hover:bg-emerald-500 shadow-lg transition">Save</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
 </body>
 </html>
