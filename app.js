@@ -20,8 +20,6 @@ let songs = [
         title: "Blessed Assurance",
         category: "Joyful",
         lyrics: "Blessed assurance, Jesus is mine!\nOh, what a foretaste of glory divine!\nHeir of salvation, purchase of God,\nBorn of His Spirit, washed in His blood.",
-        audio_url: "",
-        video_url: "https://www.youtube.com/watch?v=rDo8g2vVb2o",
         approved: true,
         created_at: Date.now() - 200000
     }
@@ -57,9 +55,8 @@ function extractYouTubeID(url) {
     return (match && match[2].length === 11) ? match[2] : null;
 }
 
-// Scoped Audio Player Loader (Fixes multi-tap diversion issue)
+// Scoped Audio Player Loader
 window.loadYTPlayer = function(songId, videoId) {
-    // Stop any previously playing dynamic players safely
     const allPlayers = document.querySelectorAll('[id^="yt-player-"]');
     allPlayers.forEach(p => {
         if (p.id !== `yt-player-${songId}`) {
@@ -131,7 +128,7 @@ function updateNewFolderBadge() {
 }
 
 // ==========================================
-// RENDER SONGS
+// RENDER SONGS (COMPACT TITLE LIST VIEW)
 // ==========================================
 function renderSongs(songsToRender, titleText) {
     listHeader.textContent = titleText;
@@ -157,19 +154,27 @@ function renderSongs(songsToRender, titleText) {
         const songIsUnapproved = isUnapproved(song);
 
         return `
-        <div class="p-4 bg-slate-800 border border-slate-700/70 rounded-xl hover:border-indigo-500/50 transition-all space-y-3">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div class="space-y-1">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <h3 class="font-bold text-lg text-white">${song.title}</h3>
-                        <span class="text-xs px-2.5 py-0.5 bg-indigo-950/80 text-indigo-300 border border-indigo-800/50 rounded-full font-medium">
-                            ${song.category}
-                        </span>
-                        ${songIsUnapproved ? `<span class="text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full font-bold">Unapproved</span>` : ''}
+        <div class="bg-slate-800 border border-slate-700/70 rounded-xl overflow-hidden transition-all mb-2">
+            <!-- TITLE ROW (Click to Expand / Collapse Details) -->
+            <div onclick="toggleSongAccordion('${song.id}')" class="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition-colors">
+                <div class="flex items-center gap-3 overflow-hidden">
+                    <div class="w-8 h-8 rounded-lg ${songIsUnapproved ? 'bg-amber-500/20 text-amber-400' : 'bg-indigo-600/20 text-indigo-400'} flex items-center justify-center font-bold text-xs shrink-0">
+                        <i class="fa-solid ${songIsUnapproved ? 'fa-clock' : 'fa-music'}"></i>
+                    </div>
+                    <div class="truncate">
+                        <h3 class="font-bold text-sm text-white truncate">${song.title}</h3>
+                        <span class="text-[10px] font-semibold text-slate-400 bg-slate-900 px-2 py-0.5 rounded-full mt-0.5 inline-block">${song.category}</span>
                     </div>
                 </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    ${songIsUnapproved ? `<span class="text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full font-bold">Unapproved</span>` : ''}
+                    <i id="accordion-icon-${song.id}" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+                </div>
+            </div>
 
-                <div class="flex items-center gap-2 shrink-0 flex-wrap">
+            <!-- EXPANDABLE DETAILS -->
+            <div id="accordion-details-${song.id}" class="hidden p-4 border-t border-slate-700/60 bg-slate-900/40 space-y-3">
+                <div class="flex items-center gap-2 flex-wrap">
                     ${ytId ? `
                     <button onclick="loadYTPlayer('${song.id}', '${ytId}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-600/30 rounded-lg text-xs font-semibold transition-all cursor-pointer">
                         <i class="fa-solid fa-play"></i> Play Audio
@@ -187,31 +192,36 @@ function renderSongs(songsToRender, titleText) {
                         <i class="fa-solid fa-thumbs-up text-sm"></i>
                     </button>
                 </div>
-            </div>
 
-            ${ytId ? `
-            <div class="mt-2 rounded-lg overflow-hidden border border-slate-700 bg-slate-900">
-                <div id="yt-preview-${song.id}" class="relative cursor-pointer group" onclick="loadYTPlayer('${song.id}', '${ytId}')">
-                    <img src="${thumbnailUrl}" class="w-full h-40 object-cover opacity-80 group-hover:opacity-100 transition-all">
-                    <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <div class="px-4 py-2 bg-rose-600/90 text-white text-xs font-bold rounded-full flex items-center gap-2 shadow-lg group-hover:scale-105 transition-all">
-                            <i class="fa-solid fa-play"></i> Tap to Play Audio Reference
+                ${ytId ? `
+                <div class="mt-2 rounded-lg overflow-hidden border border-slate-700 bg-slate-900">
+                    <div id="yt-preview-${song.id}" class="relative cursor-pointer group" onclick="loadYTPlayer('${song.id}', '${ytId}')">
+                        <img src="${thumbnailUrl}" class="w-full h-40 object-cover opacity-80 group-hover:opacity-100 transition-all">
+                        <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <div class="px-4 py-2 bg-rose-600/90 text-white text-xs font-bold rounded-full flex items-center gap-2 shadow-lg group-hover:scale-105 transition-all">
+                                <i class="fa-solid fa-play"></i> Tap to Play Audio Reference
+                            </div>
                         </div>
                     </div>
+                    <div id="yt-player-${song.id}" class="hidden"></div>
                 </div>
-                <div id="yt-player-${song.id}" class="hidden"></div>
-            </div>
-            ` : ''}
+                ` : ''}
 
-            <div id="lyrics-container-${song.id}" class="hidden pt-3 border-t border-slate-700/60 text-slate-300 text-sm whitespace-pre-line font-mono bg-slate-900/50 p-3 rounded-lg border border-slate-800">
-                ${song.lyrics || 'No lyrics provided.'}
+                <div id="lyrics-container-${song.id}" class="hidden pt-3 border-t border-slate-700/60 text-slate-300 text-sm whitespace-pre-line font-mono bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+                    ${song.lyrics || 'No lyrics provided.'}
+                </div>
             </div>
         </div>
     `;
     }).join('');
 }
 
-window.toggleLyrics = function(id) {
+window.toggleSongAccordion = function(id) {
+    const details = document.getElementById(`accordion-details-${id}`);
+    const icon = document.getElementById(`accordion-icon-${id}`);
+    if (details) details.classList.toggle('hidden');
+    if (icon) icon.classList.toggle('rotate-180');
+};window.toggleLyrics = function(id) {
     const lyricsElement = document.getElementById(`lyrics-container-${id}`);
     if (lyricsElement) {
         lyricsElement.classList.toggle('hidden');
