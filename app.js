@@ -55,37 +55,51 @@ function extractYouTubeID(url) {
     return (match && match[2].length === 11) ? match[2] : null;
 }
 
-// Scoped Audio Player Loader
+// ========================================================
+// UNIFIED BFBC PLAYER BRIDGE: NO DUPLICATE SCREEN + RULER
+// ========================================================
 window.loadYTPlayer = function(songId, videoId) {
-    const allPlayers = document.querySelectorAll('[id^="yt-player-"]');
-    allPlayers.forEach(p => {
-        if (p.id !== `yt-player-${songId}`) {
-            p.classList.add('hidden');
-            p.innerHTML = '';
-        }
-    });
+    if (window.animFrameId) cancelAnimationFrame(window.animFrameId);
+    window.activeSongId = songId;
 
-    const allPreviews = document.querySelectorAll('[id^="yt-preview-"]');
-    allPreviews.forEach(pv => pv.classList.remove('hidden'));
+    // Hanapin ang container sa ilalim ng orihinal mong player
+    let playerContainer = document.getElementById(`yt-player-${songId}`);
+    if (!playerContainer) return;
 
-    const previewContainer = document.getElementById(`yt-preview-${songId}`);
-    const playerContainer = document.getElementById(`yt-player-${songId}`);
+    playerContainer.classList.remove('hidden');
 
-    if (previewContainer) previewContainer.classList.add('hidden');
-    if (playerContainer) {
-        playerContainer.classList.remove('hidden');
-        playerContainer.innerHTML = `
-            <iframe 
-                width="100%" 
-                height="90" 
-                src="https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1" 
-                title="YouTube Audio Player" 
-                frameborder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                allowfullscreen 
-                class="rounded-lg border border-rose-500/30">
-            </iframe>
-        `;
+    // MGA RULER AT MATRIX LANG ANG IDADAGDAG (Walang panibagong Video Frame)
+    playerContainer.innerHTML = `
+        <div class="mt-3 p-3 bg-slate-900 border border-slate-700 rounded-xl space-y-3">
+            <!-- Center Pointer & Moving Ruler -->
+            <div class="ruler-wrapper relative w-full h-[60px] bg-slate-950 border border-slate-800 rounded-lg overflow-hidden">
+                <div class="center-pointer absolute left-1/2 top-0 bottom-0 w-[2px] bg-red-500 z-20 -translate-x-1/2"></div>
+                <div class="ruler-track absolute top-0 h-full left-1/2 flex items-end" id="rulerTrack-${songId}"></div>
+            </div>
+
+            <!-- Active Chord Display & Save Button -->
+            <div class="flex justify-between items-center text-xs">
+                <span class="text-slate-400">Playing Chord: <strong id="currentChordLabel-${songId}" class="text-emerald-400 text-sm font-bold">None</strong></span>
+                <button onclick="syncTappedChordsToBFBC('${songId}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs transition-all cursor-pointer">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Chords to BFBC
+                </button>
+            </div>
+
+            <!-- 7x8 Chord Matrix -->
+            <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 max-h-56 overflow-y-auto">
+                <div id="chordMatrix-${songId}" class="grid grid-cols-7 gap-1"></div>
+            </div>
+        </div>
+    `;
+
+    renderChordMatrixUI(songId);
+
+    // KONEKTA SA MISMONG ORIGINAL PLAYER MO
+    // Hook sa existing player variable (o i-bind sa YT Instance mo)
+    if (window.player || window.activeYTPlayer) {
+        const activePlayer = window.player || window.activeYTPlayer;
+        buildRulerTicks(songId, activePlayer.getDuration ? activePlayer.getDuration() : 300);
+        syncRulerLoop(songId);
     }
 };
 
@@ -499,27 +513,23 @@ const chordRows = [
 
 // 1. YouTube Player Loader (Additive overlay)
 window.loadYTPlayer = function(songId, videoId) {
-    if (animFrameId) cancelAnimationFrame(animFrameId);
-    activeSongId = songId;
+    if (window.animFrameId) cancelAnimationFrame(window.animFrameId);
+    window.activeSongId = songId;
 
-    const playerContainer = document.getElementById(`yt-player-${songId}`);
+    // Hanapin ang container para sa ruler at matrix
+    let playerContainer = document.getElementById(`yt-player-${songId}`);
     if (!playerContainer) return;
 
     playerContainer.classList.remove('hidden');
 
+    // Ruler at Matrix na lang ang i-inject (Tanggal ang duplicate video iframe)
     playerContainer.innerHTML = `
-        <div class="video-container rounded-lg overflow-hidden border border-slate-700 bg-black aspect-video mt-2">
-            <div id="yt-iframe-instance-${songId}"></div>
-        </div>
-
         <div class="mt-3 p-3 bg-slate-900 border border-slate-700 rounded-xl space-y-3">
-            <!-- Red Center Line Pointer & Ruler Track -->
             <div class="ruler-wrapper relative w-full h-[60px] bg-slate-950 border border-slate-800 rounded-lg overflow-hidden">
                 <div class="center-pointer absolute left-1/2 top-0 bottom-0 w-[2px] bg-red-500 z-20 -translate-x-1/2"></div>
                 <div class="ruler-track absolute top-0 h-full left-1/2 flex items-end" id="rulerTrack-${songId}"></div>
             </div>
 
-            <!-- Active Playback Display & Save Action -->
             <div class="flex justify-between items-center text-xs">
                 <span class="text-slate-400">Playing Chord: <strong id="currentChordLabel-${songId}" class="text-emerald-400 text-sm font-bold">None</strong></span>
                 <button onclick="syncTappedChordsToBFBC('${songId}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs transition-all cursor-pointer">
@@ -527,7 +537,6 @@ window.loadYTPlayer = function(songId, videoId) {
                 </button>
             </div>
 
-            <!-- 7x8 Manual Tap Chord Matrix -->
             <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 max-h-56 overflow-y-auto">
                 <div id="chordMatrix-${songId}" class="grid grid-cols-7 gap-1"></div>
             </div>
@@ -536,18 +545,16 @@ window.loadYTPlayer = function(songId, videoId) {
 
     renderChordMatrixUI(songId);
 
-    activeYTPlayer = new YT.Player(`yt-iframe-instance-${songId}`, {
-        height: '100%',
-        width: '100%',
-        videoId: videoId,
-        playerVars: { 'playsinline': 1, 'autoplay': 1 },
-        events: {
-            'onStateChange': (event) => onPlayerStateChange(event, songId),
-            'onReady': (event) => {
-                buildRulerTicks(songId, event.target.getDuration() || 300);
-            }
+    // I-hook sa umiiral na player para gumalaw ang ruler at timestamp
+    if (window.player || window.activeYTPlayer) {
+        const activePlayer = window.player || window.activeYTPlayer;
+        if (typeof buildRulerTicks === 'function') {
+            buildRulerTicks(songId, activePlayer.getDuration ? activePlayer.getDuration() : 300);
         }
-    });
+        if (typeof syncRulerLoop === 'function') {
+            syncRulerLoop(songId);
+        }
+    }
 };
 
 // 2. Build 7x8 Chord Matrix Buttons
