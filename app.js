@@ -243,82 +243,71 @@ window.renderRulerMarkers = function(songId) {
         };
 
         track.appendChild(badge);
-    });
-};
+// ========================================================
+// 1. SUPABASE INITIALIZATION (ORIGINAL WORKING FETCH)
+// ========================================================
+const SUPABASE_URL = 'https://xyqyjxllzstgkgfmsvwf.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5cXlqeGxsenN0Z2tnZm1zdndmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEyMzgwMTgsImV4cCI6MjA1NjgxNDAxOH0.1_R6T79G2-W8P4mQ90L_0M-J1N_y9I8P32_xY-a_m_o';
 
-window.syncTappedChordsToBFBC = async function(songId) {
-    const targetSong = songs.find(s => s.id == songId);
-    if (!targetSong) return;
+let db = null;
+if (typeof supabase !== 'undefined') {
+    db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+}
 
-    if (db) {
-        try {
-            const { error } = await db
-                .from('songs_sandbox')
-                .update({ chords: targetSong.chords })
-                .eq('id', songId);
+let songs = [];
+let activeYTPlayer = null;
+let animFrameId = null;
+const pixelsPerSecond = 100;
 
-            if (error) {
-                alert("BFBC Database Error: " + error.message);
-            } else {
-                alert("Successfully saved chords to BFBC database!");
-            }
-        } catch (err) {
-            console.error("Sync error:", err);
-            alert("Failed to sync with Supabase.");
-        }
-    } else {
-        alert("Database connection offline.");
-    }
-};
+const notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+const chordRows = [
+    { suffix: '' },
+    { suffix: 'm' },
+    { suffix: '7' },
+    { suffix: 'm7' },
+    { suffix: 'Maj7' },
+    { suffix: '#' },
+    { suffix: '#m' },
+    { suffix: '#m7' }
+];
 
 // ========================================================
-// 4. MAIN SUPABASE FETCH & DATA RENDERER
+// 2. SONG FETCH & RENDER (ORIGINAL WORKING IMPLEMENTATION)
 // ========================================================
 
 async function fetchAndRenderSongs() {
-    const container = getAppContainer();
-    if (!container) {
-        console.error("Could not find song container element in HTML.");
-        return;
-    }
-
-    container.innerHTML = '<div class="text-center py-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl"></i><p class="mt-2 text-sm">Fetching songs from Supabase...</p></div>';
-
-    if (!db) {
-        container.innerHTML = '<div class="text-center py-8 text-red-400">Supabase client failed to initialize. Check SDK script tags.</div>';
-        return;
-    }
+    if (!db) return;
 
     try {
-        const { data, error } = await db.from('songs_sandbox').select('*').order('created_at', { ascending: false });
-        
+        const { data, error } = await db
+            .from('songs_sandbox')
+            .select('*')
+            .order('created_at', { ascending: false });
+
         if (error) {
-            console.error("Supabase query error:", error);
-            container.innerHTML = `<div class="text-center py-8 text-red-400">Database error: ${error.message}</div>`;
+            console.error("Supabase Error:", error);
             return;
         }
 
-        if (data && data.length > 0) {
-            songs = data.map(song => ({
-                ...song,
-                chords: typeof song.chords === 'string' ? JSON.parse(song.chords) : (song.chords || [])
-            }));
+        if (data) {
+            songs = data;
             renderSongs(songs);
-        } else {
-            container.innerHTML = '<div class="text-center py-8 text-slate-400">No songs found in Supabase table (songs_sandbox).</div>';
         }
     } catch (err) {
-        console.error("Fetch exception:", err);
-        container.innerHTML = `<div class="text-center py-8 text-red-400">Failed to load songs: ${err.message}</div>`;
+        console.error("Fetch Error:", err);
     }
 }
 
 function renderSongs(songsToRender) {
-    const container = getAppContainer();
+    // Dynamically target whichever container exists in index.html
+    const container = document.getElementById('song-container') || 
+                      document.getElementById('songList') || 
+                      document.getElementById('songs-list');
+
     if (!container) return;
 
     if (!songsToRender || songsToRender.length === 0) {
-        container.innerHTML = '<div class="text-center py-8 text-slate-500">No songs available.</div>';
+        container.innerHTML = '<div class="text-center py-8 text-slate-500">No songs found.</div>';
         return;
     }
 
@@ -341,11 +330,125 @@ function renderSongs(songsToRender) {
                     </div>
                 </div>
                 <div id="yt-player-${song.id}" class="hidden"></div>
-            ` : '<p class="text-xs text-slate-500 italic">No YouTube reference attached.</p>'}
+            ` : '<p class="text-xs text-slate-500 italic">No YouTube video attached.</p>'}
         </div>
     `).join('');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    fetchAndRenderSongs();
-});
+// ========================================================
+// 3. YOUTUBE & CHORD MATRIX ENGINE
+// ========================================================
+
+window.renderChordMatrixUI = function(songId) {
+    const matrixContainer = document.getElementById(`chordMatrix-${songId}`);
+    if (!matrixContainer) return;
+
+    matrixContainer.innerHTML = '';
+    chordRows.forEach(row => {
+        notes.forEach(note => {
+            const chordName = `${note}${row.suffix}`;
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'chord-btn p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded border border-slate-700 transition-all cursor-pointer text-center';
+            btn.textContent = chordName;
+            btn.onclick = () => tapChordToSong(songId, chordName);
+            matrixContainer.appendChild(btn);
+        });
+    });
+};
+
+window.loadYTPlayer = function(songId, videoId) {
+    if (window.animFrameId) cancelAnimationFrame(window.animFrameId);
+
+    let playerContainer = document.getElementById(`yt-player-${songId}`);
+    let previewContainer = document.getElementById(`yt-preview-${songId}`);
+    if (!playerContainer) return;
+
+    if (previewContainer) previewContainer.style.display = 'none';
+    playerContainer.classList.remove('hidden');
+
+    playerContainer.innerHTML = `
+        <div class="video-container rounded-lg overflow-hidden border border-slate-700 bg-black aspect-video relative">
+            <div id="yt-iframe-instance-${songId}"></div>
+        </div>
+
+        <div class="mt-3 p-3 bg-slate-900 border border-slate-700 rounded-xl space-y-3">
+            <div class="ruler-wrapper relative w-full h-[60px] bg-slate-950 border border-slate-800 rounded-lg overflow-hidden">
+                <div class="center-pointer absolute left-1/2 top-0 bottom-0 w-[2px] bg-red-500 z-20 -translate-x-1/2"></div>
+                <div class="ruler-track absolute top-0 h-full left-1/2 flex items-end" id="rulerTrack-${songId}"></div>
+            </div>
+
+            <div class="flex justify-between items-center text-xs">
+                <span class="text-slate-400">Playing Chord: <strong id="currentChordLabel-${songId}" class="text-emerald-400 text-sm font-bold">None</strong></span>
+                <button onclick="syncTappedChordsToBFBC('${songId}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs transition-all cursor-pointer">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Chords to BFBC
+                </button>
+            </div>
+
+            <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 max-h-56 overflow-y-auto">
+                <div id="chordMatrix-${songId}" class="grid grid-cols-7 gap-1"></div>
+            </div>
+        </div>
+    `;
+
+    renderChordMatrixUI(songId);
+
+    window.activeYTPlayer = new YT.Player(`yt-iframe-instance-${songId}`, {
+        height: '100%',
+        width: '100%',
+        videoId: videoId,
+        playerVars: { 'playsinline': 1, 'autoplay': 1, 'enablejsapi': 1 },
+        events: {
+            'onStateChange': (event) => {
+                if (event.data === YT.PlayerState.PLAYING) {
+                    syncRulerLoop(songId);
+                } else if (animFrameId) {
+                    cancelAnimationFrame(animFrameId);
+                }
+            }
+        }
+    });
+};
+
+window.tapChordToSong = function(songId, chordName) {
+    if (!activeYTPlayer || typeof activeYTPlayer.getCurrentTime !== 'function') return;
+
+    const currentTime = parseFloat(activeYTPlayer.getCurrentTime().toFixed(2));
+    const targetSong = songs.find(s => s.id == songId);
+    if (!targetSong) return;
+
+    if (!targetSong.chords) targetSong.chords = [];
+    targetSong.chords = targetSong.chords.filter(c => Math.abs(c.time - currentTime) > 0.3);
+
+    targetSong.chords.push({ id: Date.now(), time: currentTime, chord: chordName });
+    targetSong.chords.sort((a, b) => a.time - b.time);
+};
+
+window.syncTappedChordsToBFBC = async function(songId) {
+    const targetSong = songs.find(s => s.id == songId);
+    if (!targetSong || !db) return;
+
+    const { error } = await db
+        .from('songs_sandbox')
+        .update({ chords: targetSong.chords })
+        .eq('id', songId);
+
+    if (error) {
+        alert("Error saving chords: " + error.message);
+    } else {
+        alert("Chords saved successfully!");
+    }
+};
+
+function syncRulerLoop(songId) {
+    if (activeYTPlayer && typeof activeYTPlayer.getCurrentTime === 'function') {
+        const currentTime = activeYTPlayer.getCurrentTime();
+        const offsetPixels = currentTime * pixelsPerSecond;
+
+        const track = document.getElementById(`rulerTrack-${songId}`);
+        if (track) track.style.transform = `translateX(-${offsetPixels}px)`;
+    }
+    animFrameId = requestAnimationFrame(() => syncRulerLoop(songId));
+}
+
+document.addEventListener('DOMContentLoaded', fetchAndRenderSongs);
