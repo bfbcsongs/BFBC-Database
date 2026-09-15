@@ -227,7 +227,19 @@ window.toggleSongAccordion = function(id) {
         lyricsElement.classList.toggle('hidden');
     }
 };
+window.toggleLyrics = function(id) {
+    const lyricsElement = document.getElementById(`lyrics-container-${id}`);
+    if (lyricsElement) {
+        lyricsElement.classList.toggle('hidden');
+    }
+};
 
+window.toggleTimestampStudio = function(id) {
+    const studioElement = document.getElementById(`timestamp-studio-${id}`);
+    if (studioElement) {
+        studioElement.classList.toggle('hidden');
+    }
+};
 let tapTracker = { songId: null, count: 0, timer: null };
 
 window.handleEditTap = function(id) {
