@@ -864,4 +864,1012 @@ function renderSongs(
 
 
                         <button
-                            onclick=
+                            onclick="handleEditTap('${song.id}')"
+                            class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white border border-slate-600 rounded-lg text-xs font-semibold transition-all cursor-pointer">
+
+                            <i class="fa-solid fa-pen"></i>
+                            Edit
+
+                        </button>
+
+
+                        <button
+                            onclick="handleThumbsUpTap('${song.id}')"
+                            title="Tap 5 times to approve"
+                            class="flex items-center justify-center p-2 bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-slate-900 border border-amber-500/30 rounded-lg transition-all cursor-pointer">
+
+                            <i class="fa-solid fa-thumbs-up text-sm"></i>
+
+                        </button>
+
+                    </div>
+
+
+                    ${
+                        ytId
+                            ? `
+
+                                <!-- YOUTUBE -->
+
+                                <div
+                                    class="mt-2 rounded-lg overflow-hidden border border-slate-700 bg-slate-900">
+
+
+                                    <!-- YOUTUBE PREVIEW -->
+
+                                    <div
+                                        id="yt-preview-${song.id}"
+                                        class="relative cursor-pointer group"
+                                        onclick="loadYTPlayer('${song.id}', '${ytId}')">
+
+                                        <img
+                                            src="${thumbnailUrl}"
+                                            class="w-full h-40 object-cover opacity-80 group-hover:opacity-100 transition-all">
+
+
+                                        <div
+                                            class="absolute inset-0 bg-black/40 flex items-center justify-center">
+
+                                            <div
+                                                class="px-4 py-2 bg-rose-600/90 text-white text-xs font-bold rounded-full flex items-center gap-2 shadow-lg group-hover:scale-105 transition-all">
+
+                                                <i class="fa-solid fa-play"></i>
+
+                                                Tap to Play Audio Reference
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <!-- YOUTUBE PLAYER -->
+
+                                    <div
+                                        id="yt-player-${song.id}"
+                                        class="hidden">
+                                    </div>
+
+
+                                    <!-- TIME FRAME -->
+
+                                    <div
+                                        id="time-timeline-${song.id}"
+                                        class="time-timeline">
+
+                                        <!-- FIXED CENTER REFERENCE -->
+
+                                        <div
+                                            class="time-center-line">
+                                        </div>
+
+
+                                        <div
+                                            class="time-center-label">
+                                            NOW
+                                        </div>
+
+
+                                        <!-- MOVING TIME TRACK -->
+
+                                        <div
+                                            class="time-track">
+                                        </div>
+
+                                    </div>
+
+
+                                    <!-- CURRENT TIME -->
+
+                                    <div
+                                        class="time-current-wrap">
+
+                                        <span
+                                            id="time-current-${song.id}">
+                                            00:00
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+                              `
+                            : ''
+                    }
+
+
+                    <!-- LYRICS -->
+
+                    <div
+                        id="lyrics-container-${song.id}"
+                        class="hidden pt-3 border-t border-slate-700/60 text-slate-300 text-sm whitespace-pre-line font-mono bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+
+                        ${song.lyrics || 'No lyrics provided.'}
+
+                    </div>
+
+
+                </div>
+
+            </div>
+
+            `;
+
+        }).join('');
+    /* =========================================================
+   ACCORDION
+   ========================================================= */
+
+window.toggleSongAccordion =
+function(id) {
+
+    const details =
+        document.getElementById(
+            `accordion-details-${id}`
+        );
+
+    const icon =
+        document.getElementById(
+            `accordion-icon-${id}`
+        );
+
+
+    if (details) {
+
+        details.classList.toggle(
+            'hidden'
+        );
+
+    }
+
+
+    if (icon) {
+
+        icon.classList.toggle(
+            'rotate-180'
+        );
+
+    }
+
+};
+
+
+/* =========================================================
+   LYRICS
+   ========================================================= */
+
+window.toggleLyrics =
+function(id) {
+
+    const lyricsElement =
+        document.getElementById(
+            `lyrics-container-${id}`
+        );
+
+    if (lyricsElement) {
+
+        lyricsElement.classList.toggle(
+            'hidden'
+        );
+
+    }
+
+};
+
+
+/* =========================================================
+   EDIT TAP SECURITY
+   ========================================================= */
+
+let tapTracker = {
+    songId: null,
+    count: 0,
+    timer: null
+};
+
+
+window.handleEditTap =
+function(id) {
+
+    if (
+        tapTracker.songId === id
+    ) {
+
+        tapTracker.count++;
+
+    } else {
+
+        tapTracker.songId = id;
+        tapTracker.count = 1;
+
+    }
+
+
+    clearTimeout(
+        tapTracker.timer
+    );
+
+
+    tapTracker.timer =
+        setTimeout(() => {
+
+            tapTracker.songId = null;
+            tapTracker.count = 0;
+
+        }, 2500);
+
+
+    if (
+        tapTracker.count >= 5
+    ) {
+
+        tapTracker.songId = null;
+        tapTracker.count = 0;
+
+        editSong(id);
+
+    }
+
+};
+
+
+/*
+=========================================================
+   APPROVAL TAP SECURITY
+   ========================================================= */
+
+let thumbsTapTracker = {
+    songId: null,
+    count: 0,
+    timer: null
+};
+
+
+window.handleThumbsUpTap =
+async function(id) {
+
+    if (
+        thumbsTapTracker.songId === id
+    ) {
+
+        thumbsTapTracker.count++;
+
+    } else {
+
+        thumbsTapTracker.songId = id;
+        thumbsTapTracker.count = 1;
+
+    }
+
+
+    clearTimeout(
+        thumbsTapTracker.timer
+    );
+
+
+    thumbsTapTracker.timer =
+        setTimeout(() => {
+
+            thumbsTapTracker.songId = null;
+            thumbsTapTracker.count = 0;
+
+        }, 2500);
+
+
+    if (
+        thumbsTapTracker.count >= 5
+    ) {
+
+        thumbsTapTracker.songId = null;
+        thumbsTapTracker.count = 0;
+
+        await approveSong(id);
+
+    }
+
+};
+
+
+/* =========================================================
+   APPROVE SONG
+   ========================================================= */
+
+async function approveSong(id) {
+
+    if (db) {
+
+        try {
+
+            await db
+                .from('songs_sandbox')
+                .update({
+                    approved: true
+                })
+                .eq('id', id);
+
+
+            await fetchSongs();
+
+        } catch (err) {
+
+            console.error(
+                'Approval error:',
+                err
+            );
+
+        }
+
+    } else {
+
+        songs =
+            songs.map(s =>
+                s.id == id
+                    ? {
+                        ...s,
+                        approved: true
+                    }
+                    : s
+            );
+
+    }
+
+
+    updateNewFolderBadge();
+
+    filterAndShowSongs();
+
+}
+
+
+/*
+========================
+   FILTER / DISPLAY
+   ========================================================= */
+
+function filterAndShowSongs() {
+
+    songsContainer.classList.remove(
+        'hidden'
+    );
+
+
+    const query =
+        searchInput.value
+            .toLowerCase()
+            .trim();
+
+
+    let filtered = [];
+
+
+    if (inNewFolderView) {
+
+        filtered =
+            songs.filter(song => {
+
+                const matchesSearch =
+                    song.title
+                        .toLowerCase()
+                        .includes(query) ||
+
+                    (
+                        song.lyrics &&
+                        song.lyrics
+                            .toLowerCase()
+                            .includes(query)
+                    );
+
+
+                return (
+                    isUnapproved(song) &&
+                    matchesSearch
+                );
+
+            });
+
+
+        renderSongs(
+            filtered,
+            query
+                ? `New Folder matching "${query}"`
+                : "New Songs Folder"
+        );
+
+    } else {
+
+        filtered =
+            songs.filter(song => {
+
+                const matchesSearch =
+                    song.title
+                        .toLowerCase()
+                        .includes(query) ||
+
+                    (
+                        song.lyrics &&
+                        song.lyrics
+                            .toLowerCase()
+                            .includes(query)
+                    );
+
+
+                const matchesCategory =
+                    activeCategory
+                        ? (
+                            song.category &&
+                            song.category
+                                .trim()
+                                .toLowerCase() ===
+                            activeCategory
+                                .trim()
+                                .toLowerCase()
+                        )
+                        : true;
+
+
+                return (
+                    !isUnapproved(song) &&
+                    matchesSearch &&
+                    matchesCategory
+                );
+
+            });
+
+
+        const headerLabel =
+            activeCategory
+
+                ? (
+                    query
+                        ? `${activeCategory} Songs matching "${query}"`
+                        : `${activeCategory} Songs`
+                  )
+
+                : (
+                    query
+                        ? `Results for "${query}"`
+                        : "All Songs"
+                  );
+
+
+        renderSongs(
+            filtered,
+            headerLabel
+        );
+
+    }
+
+}
+
+
+/*
+
+}
+
+
+/*
+    =========================================================
+   CATEGORY
+   ========================================================= */
+
+function clearCategorySelection() {
+
+    activeCategory = null;
+
+
+    categoryButtons.forEach(btn => {
+
+        btn.classList.remove(
+            'bg-indigo-600',
+            'text-white'
+        );
+
+        btn.classList.add(
+            'bg-slate-800',
+            'text-slate-300'
+        );
+
+    });
+
+}
+
+
+/* =========================================================
+   NEW SONGS FOLDER
+   ========================================================= */
+
+newFolderBtn.addEventListener(
+    'click',
+    () => {
+
+        inNewFolderView = true;
+
+        clearCategorySelection();
+
+
+        newFolderBtn.classList.remove(
+            'bg-amber-500/20',
+            'text-amber-300'
+        );
+
+
+        newFolderBtn.classList.add(
+            'bg-amber-500',
+            'text-slate-900'
+        );
+
+
+        filterAndShowSongs();
+
+    }
+);
+
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+searchInput.addEventListener(
+    'click',
+    () => {
+
+        inNewFolderView = false;
+
+
+        newFolderBtn.classList.remove(
+            'bg-amber-500',
+            'text-slate-900'
+        );
+
+
+        newFolderBtn.classList.add(
+            'bg-amber-500/20',
+            'text-amber-300'
+        );
+
+
+        clearCategorySelection();
+
+        filterAndShowSongs();
+
+    }
+);
+
+
+searchInput.addEventListener(
+    'input',
+    () => {
+
+        filterAndShowSongs();
+
+    }
+);
+
+
+/* =========================================================
+   CATEGORY BUTTONS
+   ========================================================= */
+
+categoryButtons.forEach(button => {
+
+    button.addEventListener(
+        'click',
+        () => {
+
+            inNewFolderView = false;
+
+
+            newFolderBtn.classList.remove(
+                'bg-amber-500',
+                'text-slate-900'
+            );
+
+
+            newFolderBtn.classList.add(
+                'bg-amber-500/20',
+                'text-amber-300'
+            );
+
+
+            const category =
+                button.getAttribute(
+                    'data-category'
+                );
+
+
+            if (
+                activeCategory === category
+            ) {
+
+                clearCategorySelection();
+
+            } else {
+
+                clearCategorySelection();
+
+                activeCategory = category;
+
+
+                button.classList.remove(
+                    'bg-slate-800',
+                    'text-slate-300'
+                );
+
+
+                button.classList.add(
+                    'bg-indigo-600',
+                    'text-white'
+                );
+
+            }
+
+
+            filterAndShowSongs();
+
+        }
+    );
+
+});
+
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+
+function openModal(isEdit = false) {
+
+    modalTitle.textContent =
+        isEdit
+            ? "Edit Song"
+            : "Add New Song";
+
+
+    songModal.classList.remove(
+        'hidden'
+    );
+
+}
+
+
+function closeModal() {
+
+    songModal.classList.add(
+        'hidden'
+    );
+
+    songForm.reset();
+
+    document.getElementById(
+        'song-id'
+    ).value = '';
+
+}
+
+
+/* =========================================================
+   ADD SONG
+   ========================================================= */
+
+addSongBtn.addEventListener(
+    'click',
+    () => openModal(false)
+);
+
+
+closeModalBtn.addEventListener(
+    'click',
+    closeModal
+);
+
+
+cancelModalBtn.addEventListener(
+    'click',
+    closeModal
+);
+
+
+/* =========================================================
+   EDIT SONG
+   ========================================================= */
+
+function editSong(id) {
+
+    const song =
+        songs.find(
+            s => s.id == id
+        );
+
+
+    if (!song) {
+        return;
+    }
+
+
+    document.getElementById(
+        'song-id'
+    ).value = song.id;
+
+
+    document.getElementById(
+        'song-title-input'
+    ).value = song.title;
+
+
+    document.getElementById(
+        'song-category-input'
+    ).value = song.category;
+
+
+    document.getElementById(
+        'song-audio-input'
+    ).value =
+        song.audio_url !== '#'
+            ? (song.audio_url || '')
+            : '';
+
+
+    document.getElementById(
+        'song-video-input'
+    ).value =
+        song.video_url !== '#'
+            ? (song.video_url || '')
+            : '';
+
+
+    document.getElementById(
+        'song-lyrics-input'
+    ).value =
+        song.lyrics || '';
+
+
+    openModal(true);
+
+}
+
+
+/*
+    =========================================================
+   SAVE SONG
+   ========================================================= */
+
+songForm.addEventListener(
+    'submit',
+    async (e) => {
+
+        e.preventDefault();
+
+
+        const id =
+            document.getElementById(
+                'song-id'
+            ).value;
+
+
+        const isNew = !id;
+
+
+        const title =
+            document.getElementById(
+                'song-title-input'
+            ).value;
+
+
+        const category =
+            document.getElementById(
+                'song-category-input'
+            ).value;
+
+
+        const audio_url =
+            document.getElementById(
+                'song-audio-input'
+            ).value || '';
+
+
+        const video_url =
+            document.getElementById(
+                'song-video-input'
+            ).value || '';
+
+
+        const lyrics =
+            document.getElementById(
+                'song-lyrics-input'
+            ).value || '';
+
+
+        if (isNew) {
+
+            const newSong = {
+
+                title,
+                category,
+                audio_url,
+                video_url,
+                lyrics,
+
+                approved: false,
+
+                created_at:
+                    Date.now()
+
+            };
+
+
+            if (db) {
+
+                try {
+
+                    const {
+                        error
+                    } =
+                        await db
+                            .from('songs_sandbox')
+                            .insert([
+                                newSong
+                            ]);
+
+
+                    if (error) {
+
+                        alert(
+                            'Save Failed: ' +
+                            error.message
+                        );
+
+                        return;
+
+                    } else {
+
+                        alert(
+                            'Success! Song saved to Sandbox.'
+                        );
+
+
+                        await fetchSongs();
+
+                    }
+
+                } catch (err) {
+
+                    alert(
+                        'Connection Error: ' +
+                        err.message
+                    );
+
+                    return;
+
+                }
+
+            } else {
+
+                songs.push({
+                    id:
+                        Date.now().toString(),
+
+                    ...newSong
+                });
+
+            }
+
+
+            inNewFolderView = true;
+
+
+            newFolderBtn.classList.remove(
+                'bg-amber-500/20',
+                'text-amber-300'
+            );
+
+
+            newFolderBtn.classList.add(
+                'bg-amber-500',
+                'text-slate-900'
+            );
+
+
+            clearCategorySelection();
+
+
+        } else {
+
+            if (db) {
+
+                try {
+
+                    const {
+                        error
+                    } =
+                        await db
+                            .from('songs_sandbox')
+                            .update({
+                                title,
+                                category,
+                                audio_url,
+                                video_url,
+                                lyrics
+                            })
+                            .eq('id', id);
+
+
+                    if (error) {
+
+                        alert(
+                            'Update Failed: ' +
+                            error.message
+                        );
+
+                        return;
+
+                    } else {
+
+                        alert(
+                            'Success! Song updated.'
+                        );
+
+
+                        await fetchSongs();
+
+                    }
+
+                } catch (err) {
+
+                    alert(
+                        'Update Error: ' +
+                        err.message
+                    );
+
+                    return;
+
+                }
+
+            } else {
+
+                songs =
+                    songs.map(
+                        s =>
+                            s.id == id
+                                ? {
+                                    ...s,
+                                    title,
+                                    category,
+                                    audio_url,
+                                    video_url,
+                                    lyrics
+                                  }
+                                : s
+                    );
+
+            }
+
+        }
+
+
+        updateNewFolderBadge();
+
+        closeModal();
+
+        filterAndShowSongs();
+
+    }
+);
+
+
+/*
+    =========================================================
+   INITIALIZE
+   ========================================================= */
+
+window.addEventListener(
+    'DOMContentLoaded',
+    async () => {
+
+        initSupabase();
+
+        await fetchSongs();
+
+        filterAndShowSongs();
+
+    }
+);
