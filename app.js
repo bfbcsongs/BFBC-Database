@@ -282,7 +282,37 @@ function renderSongs(songsToRender, titleText) {
                     <div id="yt-player-${song.id}" class="hidden"></div>
                 </div>
                 ` : ''}
+<!-- TIMESTAMP & CHORD STUDIO CONTAINER -->
+<div id="timestamp-studio-${song.id}" class="hidden pt-3 border-t border-purple-500/30 bg-purple-950/20 p-3 rounded-lg border border-purple-800/40 space-y-3">
+    <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-purple-300"><i class="fa-solid fa-guitar"></i> Chord Timestamp Studio</span>
+        <span class="text-[10px] text-purple-400 bg-purple-900/50 px-2 py-0.5 rounded">Live Sync</span>
+    </div>
 
+    <div class="grid grid-cols-4 gap-1.5 pt-1">
+        <button onclick="stampChord('${song.id}', 'C')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all">C</button>
+        <button onclick="stampChord('${song.id}', 'G')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all">G</button>
+        <button onclick="stampChord('${song.id}', 'Am')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all">Am</button>
+        <button onclick="stampChord('${song.id}', 'F')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all">F</button>
+        <button onclick="stampChord('${song.id}', 'D')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all">D</button>
+        <button onclick="stampChord('${song.id}', 'Em')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all">Em</button>
+        <button onclick="stampChord('${song.id}', 'A')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all">A</button>
+        <button onclick="stampChord('${song.id}', 'Dm')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all">Dm</button>
+    </div>
+
+    <div id="chord-timeline-${song.id}" class="min-h-[40px] max-h-32 overflow-y-auto bg-slate-900/80 p-2 rounded border border-slate-800 text-xs text-slate-300 font-mono flex flex-wrap gap-1.5 items-center">
+        <span class="text-slate-500 italic text-[11px]">No timestamps recorded yet. Tap a chord above!</span>
+    </div>
+
+    <div class="flex items-center justify-between pt-1">
+        <button onclick="clearSongChords('${song.id}')" class="text-[11px] text-rose-400 hover:underline cursor-pointer">
+            <i class="fa-solid fa-trash"></i> Clear
+        </button>
+        <button onclick="saveSongChordsToDB('${song.id}')" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg shadow transition-all cursor-pointer flex items-center gap-1">
+            <i class="fa-solid fa-floppy-disk"></i> Save Chords
+        </button>
+    </div>
+</div>
                 <!-- TIMESTAMP & CHORD STUDIO CONTAINER -->
 <div id="timestamp-studio-${song.id}" class="hidden pt-3 border-t border-purple-500/30 bg-purple-950/20 p-3 rounded-lg border border-purple-800/40 space-y-3">
     <div class="flex items-center justify-between">
