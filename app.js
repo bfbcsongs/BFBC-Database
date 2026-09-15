@@ -13,7 +13,7 @@ if (typeof supabase !== 'undefined') {
 let songs = [];
 let activeYTPlayer = null;
 let animFrameId = null;
-const pixelsPerSecond = 100; // Ruler movement scale
+const pixelsPerSecond = 100;
 let activeSongId = null;
 
 const notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
@@ -50,7 +50,6 @@ window.renderChordMatrixUI = function(songId) {
     });
 };
 
-// YouTube Player Loader (Prevents Duplicate Screen & Autoplays)
 window.loadYTPlayer = function(songId, videoId) {
     if (window.animFrameId) cancelAnimationFrame(window.animFrameId);
     window.activeSongId = songId;
@@ -269,7 +268,7 @@ window.syncTappedChordsToBFBC = async function(songId) {
 // ========================================================
 
 async function fetchAndRenderSongs() {
-    const container = document.getElementById('song-container');
+    const container = document.getElementById('song-container') || document.getElementById('songList');
     if (!container) return;
 
     container.innerHTML = '<div class="text-center py-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl"></i><p class="mt-2 text-sm">Loading song directory...</p></div>';
@@ -282,14 +281,14 @@ async function fetchAndRenderSongs() {
             }
         }
     } catch (err) {
-        console.warn('Supabase fetch failed, falling back to local state:', err);
+        console.warn('Supabase fetch failed:', err);
     }
 
     renderSongs(songs);
 }
 
 function renderSongs(songsToRender) {
-    const container = document.getElementById('song-container');
+    const container = document.getElementById('song-container') || document.getElementById('songList');
     if (!container) return;
 
     if (!songsToRender || songsToRender.length === 0) {
