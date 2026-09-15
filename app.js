@@ -516,14 +516,17 @@ window.loadYTPlayer = function(songId, videoId) {
     if (window.animFrameId) cancelAnimationFrame(window.animFrameId);
     window.activeSongId = songId;
 
-    // Hanapin ang container para sa ruler at matrix
     let playerContainer = document.getElementById(`yt-player-${songId}`);
     if (!playerContainer) return;
 
     playerContainer.classList.remove('hidden');
 
-    // Ruler at Matrix na lang ang i-inject (Tanggal ang duplicate video iframe)
+    // Single Frame + Ruler & Matrix UI
     playerContainer.innerHTML = `
+        <div class="video-container rounded-lg overflow-hidden border border-slate-700 bg-black aspect-video mt-2 relative">
+            <div id="yt-iframe-instance-${songId}"></div>
+        </div>
+
         <div class="mt-3 p-3 bg-slate-900 border border-slate-700 rounded-xl space-y-3">
             <div class="ruler-wrapper relative w-full h-[60px] bg-slate-950 border border-slate-800 rounded-lg overflow-hidden">
                 <div class="center-pointer absolute left-1/2 top-0 bottom-0 w-[2px] bg-red-500 z-20 -translate-x-1/2"></div>
@@ -545,37 +548,25 @@ window.loadYTPlayer = function(songId, videoId) {
 
     renderChordMatrixUI(songId);
 
-    // I-hook sa umiiral na player para gumalaw ang ruler at timestamp
-    if (window.player || window.activeYTPlayer) {
-        const activePlayer = window.player || window.activeYTPlayer;
-        if (typeof buildRulerTicks === 'function') {
-            buildRulerTicks(songId, activePlayer.getDuration ? activePlayer.getDuration() : 300);
+    // Direct Instantiation para Siguradong Tumugtog
+    window.activeYTPlayer = new YT.Player(`yt-iframe-instance-${songId}`, {
+        height: '100%',
+        width: '100%',
+        videoId: videoId,
+        playerVars: { 
+            'playsinline': 1, 
+            'autoplay': 1,
+            'enablejsapi': 1 
+        },
+        events: {
+            'onStateChange': (event) => onPlayerStateChange(event, songId),
+            'onReady': (event) => {
+                buildRulerTicks(songId, event.target.getDuration() || 300);
+                event.target.playVideo();
+            }
         }
-        if (typeof syncRulerLoop === 'function') {
-            syncRulerLoop(songId);
-        }
-    }
-};
-
-// 2. Build 7x8 Chord Matrix Buttons
-function renderChordMatrixUI(songId) {
-    const matrix = document.getElementById(`chordMatrix-${songId}`);
-    if (!matrix) return;
-    matrix.innerHTML = '';
-
-    chordRows.forEach(row => {
-        notes.forEach(note => {
-            const chordName = `${note}${row.suffix}`;
-            const btn = document.createElement('button');
-            btn.className = 'chord-btn bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded text-[11px] font-bold border border-slate-700 text-center active:scale-95 transition-all cursor-pointer';
-            btn.textContent = chordName;
-            
-            // Call Part 2 Tapping Helper
-            btn.onclick = () => tapChordToSong(songId, chordName);
-            matrix.appendChild(btn);
-        });
     });
-}
+};
 
 // 3. Build Timeline Ruler Scale
 function buildRulerTicks(songId, duration) {
