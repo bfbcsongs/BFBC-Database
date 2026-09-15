@@ -28,6 +28,14 @@ const chordRows = [
     { suffix: '#m7' }
 ];
 
+// Helper to locate DOM element across common template IDs
+function getAppContainer() {
+    return document.getElementById('song-container') || 
+           document.getElementById('songList') || 
+           document.getElementById('songs-list') || 
+           document.getElementById('app');
+}
+
 // ========================================================
 // 2. UI ENGINE & MATRIX GENERATOR
 // ========================================================
@@ -158,7 +166,7 @@ function syncRulerLoop(songId) {
         const targetSong = songs.find(s => s.id == songId);
         let currentActiveChord = 'None';
 
-        if (targetSong && targetSong.chords) {
+        if (targetSong && targetSong.chords && Array.isArray(targetSong.chords)) {
             for (let i = targetSong.chords.length - 1; i >= 0; i--) {
                 if (currentTime >= targetSong.chords[i].time) {
                     currentActiveChord = targetSong.chords[i].chord;
@@ -197,7 +205,7 @@ window.tapChordToSong = function(songId, chordName) {
     const targetSong = songs.find(s => s.id == songId);
     if (!targetSong) return;
 
-    if (!targetSong.chords) {
+    if (!targetSong.chords || !Array.isArray(targetSong.chords)) {
         targetSong.chords = [];
     }
 
@@ -220,7 +228,7 @@ window.renderRulerMarkers = function(songId) {
     track.querySelectorAll('.chord-badge').forEach(b => b.remove());
 
     const targetSong = songs.find(s => s.id == songId);
-    if (!targetSong || !targetSong.chords) return;
+    if (!targetSong || !targetSong.chords || !Array.isArray(targetSong.chords)) return;
 
     targetSong.chords.forEach(item => {
         const badge = document.createElement('div');
@@ -256,43 +264,61 @@ window.syncTappedChordsToBFBC = async function(songId) {
             }
         } catch (err) {
             console.error("Sync error:", err);
-            alert("Saved locally in session.");
+            alert("Failed to sync with Supabase.");
         }
     } else {
-        alert("Saved locally in session.");
+        alert("Database connection offline.");
     }
 };
 
 // ========================================================
-// 4. MAIN DATA RENDERER & INITIALIZATION
+// 4. MAIN SUPABASE FETCH & DATA RENDERER
 // ========================================================
 
 async function fetchAndRenderSongs() {
-    const container = document.getElementById('song-container') || document.getElementById('songList');
-    if (!container) return;
-
-    container.innerHTML = '<div class="text-center py-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl"></i><p class="mt-2 text-sm">Loading song directory...</p></div>';
-
-    try {
-        if (db) {
-            const { data, error } = await db.from('songs_sandbox').select('*').order('created_at', { ascending: false });
-            if (!error && data && data.length > 0) {
-                songs = data;
-            }
-        }
-    } catch (err) {
-        console.warn('Supabase fetch failed:', err);
+    const container = getAppContainer();
+    if (!container) {
+        console.error("Could not find song container element in HTML.");
+        return;
     }
 
-    renderSongs(songs);
+    container.innerHTML = '<div class="text-center py-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl"></i><p class="mt-2 text-sm">Fetching songs from Supabase...</p></div>';
+
+    if (!db) {
+        container.innerHTML = '<div class="text-center py-8 text-red-400">Supabase client failed to initialize. Check SDK script tags.</div>';
+        return;
+    }
+
+    try {
+        const { data, error } = await db.from('songs_sandbox').select('*').order('created_at', { ascending: false });
+        
+        if (error) {
+            console.error("Supabase query error:", error);
+            container.innerHTML = `<div class="text-center py-8 text-red-400">Database error: ${error.message}</div>`;
+            return;
+        }
+
+        if (data && data.length > 0) {
+            songs = data.map(song => ({
+                ...song,
+                chords: typeof song.chords === 'string' ? JSON.parse(song.chords) : (song.chords || [])
+            }));
+            renderSongs(songs);
+        } else {
+            container.innerHTML = '<div class="text-center py-8 text-slate-400">No songs found in Supabase table (songs_sandbox).</div>';
+        }
+    } catch (err) {
+        console.error("Fetch exception:", err);
+        container.innerHTML = `<div class="text-center py-8 text-red-400">Failed to load songs: ${err.message}</div>`;
+    }
 }
 
 function renderSongs(songsToRender) {
-    const container = document.getElementById('song-container') || document.getElementById('songList');
+    const container = getAppContainer();
     if (!container) return;
 
     if (!songsToRender || songsToRender.length === 0) {
-        container.innerHTML = '<div class="text-center py-8 text-slate-500">No songs available in directory.</div>';
+        container.innerHTML = '<div class="text-center py-8 text-slate-500">No songs available.</div>';
         return;
     }
 
