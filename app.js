@@ -283,20 +283,40 @@ function renderSongs(songsToRender, titleText) {
                 </div>
                 ` : ''}
 
-                <!-- TIMESTAMP MENU CONTAINER -->
-                <div id="timestamp-studio-${song.id}" class="hidden pt-3 border-t border-purple-500/30 bg-purple-950/20 p-3 rounded-lg border border-purple-800/40 space-y-3">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-purple-300"><i class="fa-solid fa-clock-rotate-left"></i> Timestamp & Chord Menu</span>
-                        <span class="text-[10px] text-purple-400 bg-purple-900/50 px-2 py-0.5 rounded">Ready to sync</span>
-                    </div>
-                    <p class="text-xs text-slate-400">Timestamp controls will load here for this song.</p>
-                </div>
+                <!-- TIMESTAMP & CHORD STUDIO CONTAINER -->
+<div id="timestamp-studio-${song.id}" class="hidden pt-3 border-t border-purple-500/30 bg-purple-950/20 p-3 rounded-lg border border-purple-800/40 space-y-3">
+    <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-purple-300"><i class="fa-solid fa-guitar"></i> Chord Timestamp Studio</span>
+        <span class="text-[10px] text-purple-400 bg-purple-900/50 px-2 py-0.5 rounded">Live Sync</span>
+    </div>
 
-                <div id="lyrics-container-${song.id}" class="hidden pt-3 border-t border-slate-700/60 text-slate-300 text-sm whitespace-pre-line font-mono bg-slate-900/50 p-3 rounded-lg border border-slate-800">
-                    ${song.lyrics || 'No lyrics provided.'}
-                </div>
-            </div>
-        </div>
+    <!-- Quick Chord Buttons -->
+    <div class="grid grid-cols-4 gap-1.5 pt-1">
+        <button onclick="stampChord('${song.id}', 'C')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all active:scale-95">C</button>
+        <button onclick="stampChord('${song.id}', 'G')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all active:scale-95">G</button>
+        <button onclick="stampChord('${song.id}', 'Am')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all active:scale-95">Am</button>
+        <button onclick="stampChord('${song.id}', 'F')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all active:scale-95">F</button>
+        <button onclick="stampChord('${song.id}', 'D')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all active:scale-95">D</button>
+        <button onclick="stampChord('${song.id}', 'Em')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all active:scale-95">Em</button>
+        <button onclick="stampChord('${song.id}', 'A')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all active:scale-95">A</button>
+        <button onclick="stampChord('${song.id}', 'Dm')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all active:scale-95">Dm</button>
+    </div>
+
+    <!-- Live Recorded List Display -->
+    <div id="chord-timeline-${song.id}" class="min-h-[40px] max-h-32 overflow-y-auto bg-slate-900/80 p-2 rounded border border-slate-800 text-xs text-slate-300 font-mono flex flex-wrap gap-1.5 items-center">
+        <span class="text-slate-500 italic text-[11px]">No timestamps recorded yet. Play reference audio & tap a chord above!</span>
+    </div>
+
+    <!-- Actions Row -->
+    <div class="flex items-center justify-between pt-1">
+        <button onclick="clearSongChords('${song.id}')" class="text-[11px] text-rose-400 hover:underline cursor-pointer">
+            <i class="fa-solid fa-trash"></i> Clear
+        </button>
+        <button onclick="saveSongChordsToDB('${song.id}')" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg shadow transition-all cursor-pointer flex items-center gap-1">
+            <i class="fa-solid fa-floppy-disk"></i> Save Chords
+        </button>
+    </div>
+</div>
     `;
     }).join('');
 }
@@ -570,3 +590,74 @@ window.addEventListener('DOMContentLoaded', async () => {
     filterAndShowSongs();
 });
             
+// Local in-memory store for active session recorded chords per song
+let activeSongChords = {};
+
+window.stampChord = function(songId, chordLabel) {
+    if (!activeSongChords[songId]) {
+        activeSongChords[songId] = [];
+    }
+
+    // Try to get playback time if iframe player is active, else default to manual order timestamp
+    const iframe = document.querySelector(`#yt-player-${songId} iframe`);
+    let currentTime = 0;
+    
+    // Auto-increment standard timestamp sequence if audio isn't active
+    const lastTimestamp = activeSongChords[songId].length > 0 
+        ? activeSongChords[songId][activeSongChords[songId].length - 1].time + 2 
+        : 0;
+
+    const timestamp = {
+        time: lastTimestamp,
+        chord: chordLabel
+    };
+
+    activeSongChords[songId].push(timestamp);
+    renderChordTimeline(songId);
+};
+
+window.renderChordTimeline = function(songId) {
+    const timelineContainer = document.getElementById(`chord-timeline-${songId}`);
+    if (!timelineContainer) return;
+
+    const list = activeSongChords[songId] || [];
+
+    if (list.length === 0) {
+        timelineContainer.innerHTML = `<span class="text-slate-500 italic text-[11px]">No timestamps recorded yet. Play reference audio & tap a chord above!</span>`;
+        return;
+    }
+
+    timelineContainer.innerHTML = list.map((item, idx) => `
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-900/60 border border-purple-500/40 text-purple-200 rounded text-xs font-bold">
+            ${item.chord} <span class="text-[10px] text-purple-400 font-normal">(${item.time}s)</span>
+        </span>
+    `).join('');
+};
+
+window.clearSongChords = function(songId) {
+    activeSongChords[songId] = [];
+    renderChordTimeline(songId);
+};
+
+window.saveSongChordsToDB = async function(songId) {
+    const list = activeSongChords[songId] || [];
+    if (list.length === 0) {
+        alert('No chords stamped to save!');
+        return;
+    }
+
+    if (db) {
+        try {
+            const { error } = await db.from('songs_sandbox').update({ chords: list }).eq('id', songId);
+            if (error) {
+                alert('Save failed: ' + error.message);
+            } else {
+                alert(`Successfully saved ${list.length} chords for this song!`);
+            }
+        } catch (err) {
+            alert('Database connection error: ' + err.message);
+        }
+    } else {
+        alert('Saved locally in-memory (Supabase client inactive).');
+    }
+};
