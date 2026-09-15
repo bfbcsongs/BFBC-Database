@@ -56,37 +56,96 @@ function extractYouTubeID(url) {
 }
 
 // Scoped Audio Player Loader
+let ytPlayers = {};
+let ytTimelineTimers = {};
+
+window.onYouTubeIframeAPIReady = function() {
+    console.log("YouTube API ready");
+};
+
 window.loadYTPlayer = function(songId, videoId) {
-    const allPlayers = document.querySelectorAll('[id^="yt-player-"]');
-    allPlayers.forEach(p => {
+
+    // Stop other players
+    Object.keys(ytPlayers).forEach(id => {
+        if (id !== String(songId) && ytPlayers[id]) {
+            try {
+                ytPlayers[id].stopVideo();
+            } catch(e) {}
+        }
+    });
+
+    // Hide other players/previews
+    document.querySelectorAll('[id^="yt-player-"]').forEach(p => {
         if (p.id !== `yt-player-${songId}`) {
             p.classList.add('hidden');
             p.innerHTML = '';
         }
     });
 
-    const allPreviews = document.querySelectorAll('[id^="yt-preview-"]');
-    allPreviews.forEach(pv => pv.classList.remove('hidden'));
+    document.querySelectorAll('[id^="yt-preview-"]').forEach(pv => {
+        pv.classList.remove('hidden');
+    });
 
-    const previewContainer = document.getElementById(`yt-preview-${songId}`);
-    const playerContainer = document.getElementById(`yt-player-${songId}`);
+    const previewContainer =
+        document.getElementById(`yt-preview-${songId}`);
 
-    if (previewContainer) previewContainer.classList.add('hidden');
-    if (playerContainer) {
-        playerContainer.classList.remove('hidden');
-        playerContainer.innerHTML = `
-            <iframe 
-                width="100%" 
-                height="90" 
-                src="https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1" 
-                title="YouTube Audio Player" 
-                frameborder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                allowfullscreen 
-                class="rounded-lg border border-rose-500/30">
-            </iframe>
-        `;
+    const playerContainer =
+        document.getElementById(`yt-player-${songId}`);
+
+    if (!playerContainer) return;
+
+    if (previewContainer) {
+        previewContainer.classList.add('hidden');
     }
+
+    playerContainer.classList.remove('hidden');
+
+    // Create the YouTube player
+    playerContainer.innerHTML = `
+        <div id="yt-frame-${songId}"></div>
+    `;
+
+    function createPlayer() {
+
+        if (typeof YT === 'undefined' || !YT.Player) {
+            setTimeout(createPlayer, 300);
+            return;
+        }
+
+        ytPlayers[songId] = new YT.Player(`yt-frame-${songId}`, {
+            videoId: videoId,
+
+            playerVars: {
+                autoplay: 1,
+                playsinline: 1,
+                rel: 0
+            },
+
+            events: {
+                onReady: function(event) {
+                    event.target.playVideo();
+                    startTimeTimeline(songId);
+                },
+
+                onStateChange: function(event) {
+
+                    if (event.data === YT.PlayerState.PLAYING) {
+                        startTimeTimeline(songId);
+                    }
+
+                    if (event.data === YT.PlayerState.PAUSED) {
+                        stopTimeTimeline(songId);
+                    }
+
+                    if (event.data === YT.PlayerState.ENDED) {
+                        stopTimeTimeline(songId);
+                    }
+                }
+            }
+        });
+    }
+
+    createPlayer();
 };
 
 // Helper for strict unapproved status check
