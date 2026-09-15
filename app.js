@@ -501,38 +501,38 @@ let activeSongId = null;
 
 const notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 const chordRows = [
-    { suffix: '' },
-    { suffix: 'm' },
-    { suffix: '7' },
-    { suffix: 'm7' },
-    { suffix: 'Maj7' },
-    { suffix: '#' },
-    { suffix: '#m' },
-    { suffix: '#m7' }
-];
-
-// 1. YouTube Player Loader (Additive overlay)
+    // ========================================================
+// UNIFIED BFBC PLAYER BRIDGE: NO DUPLICATE SCREEN + RULER
+// ========================================================
 window.loadYTPlayer = function(songId, videoId) {
     if (window.animFrameId) cancelAnimationFrame(window.animFrameId);
     window.activeSongId = songId;
 
     let playerContainer = document.getElementById(`yt-player-${songId}`);
+    let previewContainer = document.getElementById(`yt-preview-${songId}`);
     if (!playerContainer) return;
+
+    // 1. TANGGALIN ANG PREVIEW THUMBNAIL NA MAY BUTTON
+    if (previewContainer) {
+        previewContainer.style.display = 'none';
+    }
 
     playerContainer.classList.remove('hidden');
 
-    // Single Frame + Ruler & Matrix UI
+    // 2. ISANG VIDEO CONTAINER AT RULER/MATRIX LANG ANG IPAPASOK
     playerContainer.innerHTML = `
-        <div class="video-container rounded-lg overflow-hidden border border-slate-700 bg-black aspect-video mt-2 relative">
+        <div class="video-container rounded-lg overflow-hidden border border-slate-700 bg-black aspect-video relative">
             <div id="yt-iframe-instance-${songId}"></div>
         </div>
 
         <div class="mt-3 p-3 bg-slate-900 border border-slate-700 rounded-xl space-y-3">
+            <!-- Center Pointer & Moving Ruler -->
             <div class="ruler-wrapper relative w-full h-[60px] bg-slate-950 border border-slate-800 rounded-lg overflow-hidden">
                 <div class="center-pointer absolute left-1/2 top-0 bottom-0 w-[2px] bg-red-500 z-20 -translate-x-1/2"></div>
                 <div class="ruler-track absolute top-0 h-full left-1/2 flex items-end" id="rulerTrack-${songId}"></div>
             </div>
 
+            <!-- Active Chord Display & Save Button -->
             <div class="flex justify-between items-center text-xs">
                 <span class="text-slate-400">Playing Chord: <strong id="currentChordLabel-${songId}" class="text-emerald-400 text-sm font-bold">None</strong></span>
                 <button onclick="syncTappedChordsToBFBC('${songId}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs transition-all cursor-pointer">
@@ -540,6 +540,7 @@ window.loadYTPlayer = function(songId, videoId) {
                 </button>
             </div>
 
+            <!-- 7x8 Chord Matrix -->
             <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 max-h-56 overflow-y-auto">
                 <div id="chordMatrix-${songId}" class="grid grid-cols-7 gap-1"></div>
             </div>
@@ -548,7 +549,7 @@ window.loadYTPlayer = function(songId, videoId) {
 
     renderChordMatrixUI(songId);
 
-    // Direct Instantiation para Siguradong Tumugtog
+    // 3. ISANG YOUTUBE PLAYER INSTANCE LANG ANG GAGAWIN AT MAG-PLAY AGAD
     window.activeYTPlayer = new YT.Player(`yt-iframe-instance-${songId}`, {
         height: '100%',
         width: '100%',
@@ -566,7 +567,18 @@ window.loadYTPlayer = function(songId, videoId) {
             }
         }
     });
-};
+};{ suffix: '' },
+    { suffix: 'm' },
+    { suffix: '7' },
+    { suffix: 'm7' },
+    { suffix: 'Maj7' },
+    { suffix: '#' },
+    { suffix: '#m' },
+    { suffix: '#m7' }
+];
+
+// 1. YouTube Player Loader (Additive overlay)
+
 
 // 3. Build Timeline Ruler Scale
 function buildRulerTicks(songId, duration) {
