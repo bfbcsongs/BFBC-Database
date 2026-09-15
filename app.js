@@ -144,7 +144,108 @@ window.loadYTPlayer = function(songId, videoId) {
             }
         });
     }
+function startTimeTimeline(songId) {
 
+    stopTimeTimeline(songId);
+
+    const timeline = document.getElementById(`time-timeline-${songId}`);
+
+    if (!timeline) return;
+
+    const track = timeline.querySelector('.time-track');
+
+    if (!track) return;
+
+    ytTimelineTimers[songId] = setInterval(() => {
+
+        const player = ytPlayers[songId];
+
+        if (!player || typeof player.getCurrentTime !== 'function') {
+            return;
+        }
+
+        const currentTime = player.getCurrentTime();
+
+        updateTimeTimeline(songId, currentTime);
+
+    }, 50);
+}
+
+
+function stopTimeTimeline(songId) {
+
+    if (ytTimelineTimers[songId]) {
+
+        clearInterval(ytTimelineTimers[songId]);
+
+        ytTimelineTimers[songId] = null;
+    }
+}
+
+
+function updateTimeTimeline(songId, currentTime) {
+
+    const timeline =
+        document.getElementById(`time-timeline-${songId}`);
+
+    if (!timeline) return;
+
+    const track =
+        timeline.querySelector('.time-track');
+
+    if (!track) return;
+
+    const pixelsPerSecond = 70;
+
+    const center =
+        timeline.clientWidth / 2;
+
+    const position =
+        center - (currentTime * pixelsPerSecond);
+
+    track.style.transform =
+        `translateX(${position}px)`;
+
+    const markers =
+        track.querySelectorAll('.time-marker');
+
+    markers.forEach(marker => {
+
+        const markerTime =
+            parseFloat(marker.dataset.time);
+
+        const distance =
+            Math.abs(markerTime - currentTime);
+
+        if (distance < 0.5) {
+            marker.classList.add('active');
+        } else {
+            marker.classList.remove('active');
+        }
+    });
+
+    const currentDisplay =
+        document.getElementById(`time-current-${songId}`);
+
+    if (currentDisplay) {
+        currentDisplay.textContent =
+            formatTime(currentTime);
+    }
+}
+
+
+function formatTime(seconds) {
+
+    seconds = Math.floor(seconds);
+
+    const minutes =
+        Math.floor(seconds / 60);
+
+    const secs =
+        seconds % 60;
+
+    return `${String(minutes).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+}
     createPlayer();
 };
 
