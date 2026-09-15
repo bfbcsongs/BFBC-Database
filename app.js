@@ -198,82 +198,6 @@ function renderSongs(songsToRender, titleText) {
                     <div id="yt-preview-${song.id}" class="relative cursor-pointer group" onclick="loadYTPlayer('${song.id}', '${ytId}')">
                         <img src="${thumbnailUrl}" class="w-full h-40 object-cover opacity-80 group-hover:opacity-100 transition-all">
                         <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
-// ==========================================
-// RENDER SONGS (COMPACT TITLE LIST VIEW)
-// ==========================================
-function renderSongs(songsToRender, titleText) {
-    listHeader.textContent = titleText;
-    
-    let sortedSongs = [...songsToRender];
-
-    if (inNewFolderView) {
-        sortedSongs.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-    } else {
-        sortedSongs.sort((a, b) => a.title.localeCompare(b.title));
-    }
-
-    songCount.textContent = `${sortedSongs.length} song${sortedSongs.length === 1 ? '' : 's'} found`;
-
-    if (sortedSongs.length === 0) {
-        songsList.innerHTML = `<p class="text-center text-slate-500 py-8">No songs found in this view.</p>`;
-        return;
-    }
-
-    songsList.innerHTML = sortedSongs.map(song => {
-        const ytId = extractYouTubeID(song.video_url) || extractYouTubeID(song.audio_url);
-        const thumbnailUrl = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
-        const songIsUnapproved = isUnapproved(song);
-
-        return `
-        <div class="bg-slate-800 border border-slate-700/70 rounded-xl overflow-hidden transition-all mb-2">
-            <!-- TITLE ROW (Click to Expand / Collapse Details) -->
-            <div onclick="toggleSongAccordion('${song.id}')" class="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition-colors">
-                <div class="flex items-center gap-3 overflow-hidden">
-                    <div class="w-8 h-8 rounded-lg ${songIsUnapproved ? 'bg-amber-500/20 text-amber-400' : 'bg-indigo-600/20 text-indigo-400'} flex items-center justify-center font-bold text-xs shrink-0">
-                        <i class="fa-solid ${songIsUnapproved ? 'fa-clock' : 'fa-music'}"></i>
-                    </div>
-                    <div class="truncate">
-                        <h3 class="font-bold text-sm text-white truncate">${song.title}</h3>
-                        <span class="text-[10px] font-semibold text-slate-400 bg-slate-900 px-2 py-0.5 rounded-full mt-0.5 inline-block">${song.category}</span>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2 shrink-0">
-                    ${songIsUnapproved ? `<span class="text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full font-bold">Unapproved</span>` : ''}
-                    <i id="accordion-icon-${song.id}" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
-                </div>
-            </div>
-
-            <!-- EXPANDABLE DETAILS -->
-            <div id="accordion-details-${song.id}" class="hidden p-4 border-t border-slate-700/60 bg-slate-900/40 space-y-3">
-                <div class="flex items-center gap-2 flex-wrap">
-                    ${ytId ? `
-                    <button onclick="loadYTPlayer('${song.id}', '${ytId}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-600/30 rounded-lg text-xs font-semibold transition-all cursor-pointer">
-                        <i class="fa-solid fa-play"></i> Play Audio
-                    </button>` : ''}
-
-                    <button onclick="toggleLyrics('${song.id}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600/20 text-sky-400 hover:bg-sky-600 hover:text-white border border-sky-600/30 rounded-lg text-xs font-semibold transition-all cursor-pointer">
-                        <i class="fa-solid fa-align-left"></i> Lyrics
-                    </button>
-
-                    <!-- NEW CHORDS STUDIO BUTTON -->
-                    <button onclick="toggleTimestampStudio('${song.id}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/20 text-purple-400 hover:bg-purple-600 hover:text-white border border-purple-600/30 rounded-lg text-xs font-semibold transition-all cursor-pointer">
-                        <i class="fa-solid fa-guitar"></i> Chords Studio
-                    </button>
-
-                    <button onclick="handleEditTap('${song.id}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white border border-slate-600 rounded-lg text-xs font-semibold transition-all cursor-pointer">
-                        <i class="fa-solid fa-pen"></i> Edit
-                    </button>
-
-                    <button onclick="handleThumbsUpTap('${song.id}')" title="Tap 5 times to approve" class="flex items-center justify-center p-2 bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-slate-900 border border-amber-500/30 rounded-lg transition-all cursor-pointer">
-                        <i class="fa-solid fa-thumbs-up text-sm"></i>
-                    </button>
-                </div>
-
-                ${ytId ? `
-                <div class="mt-2 rounded-lg overflow-hidden border border-slate-700 bg-slate-900">
-                    <div id="yt-preview-${song.id}" class="relative cursor-pointer group" onclick="loadYTPlayer('${song.id}', '${ytId}')">
-                        <img src="${thumbnailUrl}" class="w-full h-40 object-cover opacity-80 group-hover:opacity-100 transition-all">
-                        <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
                             <div class="px-4 py-2 bg-rose-600/90 text-white text-xs font-bold rounded-full flex items-center gap-2 shadow-lg group-hover:scale-105 transition-all">
                                 <i class="fa-solid fa-play"></i> Tap to Play Audio Reference
                             </div>
@@ -282,71 +206,12 @@ function renderSongs(songsToRender, titleText) {
                     <div id="yt-player-${song.id}" class="hidden"></div>
                 </div>
                 ` : ''}
-<!-- TIMESTAMP & CHORD STUDIO CONTAINER -->
-<div id="timestamp-studio-${song.id}" class="hidden pt-3 border-t border-purple-500/30 bg-purple-950/20 p-3 rounded-lg border border-purple-800/40 space-y-3">
-    <div class="flex items-center justify-between">
-        <span class="text-xs font-bold text-purple-300"><i class="fa-solid fa-guitar"></i> Chord Timestamp Studio</span>
-        <span class="text-[10px] text-purple-400 bg-purple-900/50 px-2 py-0.5 rounded">Live Sync</span>
-    </div>
 
-    <div class="grid grid-cols-4 gap-1.5 pt-1">
-        <button onclick="stampChord('${song.id}', 'C')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all">C</button>
-        <button onclick="stampChord('${song.id}', 'G')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all">G</button>
-        <button onclick="stampChord('${song.id}', 'Am')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all">Am</button>
-        <button onclick="stampChord('${song.id}', 'F')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all">F</button>
-        <button onclick="stampChord('${song.id}', 'D')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all">D</button>
-        <button onclick="stampChord('${song.id}', 'Em')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all">Em</button>
-        <button onclick="stampChord('${song.id}', 'A')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all">A</button>
-        <button onclick="stampChord('${song.id}', 'Dm')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all">Dm</button>
-    </div>
-
-    <div id="chord-timeline-${song.id}" class="min-h-[40px] max-h-32 overflow-y-auto bg-slate-900/80 p-2 rounded border border-slate-800 text-xs text-slate-300 font-mono flex flex-wrap gap-1.5 items-center">
-        <span class="text-slate-500 italic text-[11px]">No timestamps recorded yet. Tap a chord above!</span>
-    </div>
-
-    <div class="flex items-center justify-between pt-1">
-        <button onclick="clearSongChords('${song.id}')" class="text-[11px] text-rose-400 hover:underline cursor-pointer">
-            <i class="fa-solid fa-trash"></i> Clear
-        </button>
-        <button onclick="saveSongChordsToDB('${song.id}')" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg shadow transition-all cursor-pointer flex items-center gap-1">
-            <i class="fa-solid fa-floppy-disk"></i> Save Chords
-        </button>
-    </div>
-</div>
-                <!-- TIMESTAMP & CHORD STUDIO CONTAINER -->
-<div id="timestamp-studio-${song.id}" class="hidden pt-3 border-t border-purple-500/30 bg-purple-950/20 p-3 rounded-lg border border-purple-800/40 space-y-3">
-    <div class="flex items-center justify-between">
-        <span class="text-xs font-bold text-purple-300"><i class="fa-solid fa-guitar"></i> Chord Timestamp Studio</span>
-        <span class="text-[10px] text-purple-400 bg-purple-900/50 px-2 py-0.5 rounded">Live Sync</span>
-    </div>
-
-    <!-- Quick Chord Buttons -->
-    <div class="grid grid-cols-4 gap-1.5 pt-1">
-        <button onclick="stampChord('${song.id}', 'C')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all active:scale-95">C</button>
-        <button onclick="stampChord('${song.id}', 'G')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all active:scale-95">G</button>
-        <button onclick="stampChord('${song.id}', 'Am')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all active:scale-95">Am</button>
-        <button onclick="stampChord('${song.id}', 'F')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all active:scale-95">F</button>
-        <button onclick="stampChord('${song.id}', 'D')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all active:scale-95">D</button>
-        <button onclick="stampChord('${song.id}', 'Em')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all active:scale-95">Em</button>
-        <button onclick="stampChord('${song.id}', 'A')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all active:scale-95">A</button>
-        <button onclick="stampChord('${song.id}', 'Dm')" class="py-1.5 bg-slate-800 hover:bg-purple-600 text-purple-200 text-xs font-bold rounded border border-slate-700 transition-all active:scale-95">Dm</button>
-    </div>
-
-    <!-- Live Recorded List Display -->
-    <div id="chord-timeline-${song.id}" class="min-h-[40px] max-h-32 overflow-y-auto bg-slate-900/80 p-2 rounded border border-slate-800 text-xs text-slate-300 font-mono flex flex-wrap gap-1.5 items-center">
-        <span class="text-slate-500 italic text-[11px]">No timestamps recorded yet. Play reference audio & tap a chord above!</span>
-    </div>
-
-    <!-- Actions Row -->
-    <div class="flex items-center justify-between pt-1">
-        <button onclick="clearSongChords('${song.id}')" class="text-[11px] text-rose-400 hover:underline cursor-pointer">
-            <i class="fa-solid fa-trash"></i> Clear
-        </button>
-        <button onclick="saveSongChordsToDB('${song.id}')" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg shadow transition-all cursor-pointer flex items-center gap-1">
-            <i class="fa-solid fa-floppy-disk"></i> Save Chords
-        </button>
-    </div>
-</div>
+                <div id="lyrics-container-${song.id}" class="hidden pt-3 border-t border-slate-700/60 text-slate-300 text-sm whitespace-pre-line font-mono bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+                    ${song.lyrics || 'No lyrics provided.'}
+                </div>
+            </div>
+        </div>
     `;
     }).join('');
 }
@@ -356,19 +221,10 @@ window.toggleSongAccordion = function(id) {
     const icon = document.getElementById(`accordion-icon-${id}`);
     if (details) details.classList.toggle('hidden');
     if (icon) icon.classList.toggle('rotate-180');
-};
-
-window.toggleLyrics = function(id) {
+};window.toggleLyrics = function(id) {
     const lyricsElement = document.getElementById(`lyrics-container-${id}`);
     if (lyricsElement) {
         lyricsElement.classList.toggle('hidden');
-    }
-};
-
-window.toggleTimestampStudio = function(id) {
-    const studioElement = document.getElementById(`timestamp-studio-${id}`);
-    if (studioElement) {
-        studioElement.classList.toggle('hidden');
     }
 };
 
@@ -619,70 +475,4 @@ window.addEventListener('DOMContentLoaded', async () => {
     await fetchSongs();
     filterAndShowSongs();
 });
- // ==========================================
-// CHORD & TIMESTAMP STUDIO HELPERS
-// ==========================================
-var activeSongChords = {};
-
-window.toggleTimestampStudio = function(id) {
-    var studioElement = document.getElementById('timestamp-studio-' + id);
-    if (studioElement) {
-        studioElement.classList.toggle('hidden');
-    }
-};
-
-window.stampChord = function(songId, chordLabel) {
-    if (!activeSongChords[songId]) {
-        activeSongChords[songId] = [];
-    }
-    var list = activeSongChords[songId];
-    var lastTime = list.length > 0 ? list[list.length - 1].time + 2 : 0;
-
-    list.push({ time: lastTime, chord: chordLabel });
-    window.renderChordTimeline(songId);
-};
-
-window.renderChordTimeline = function(songId) {
-    var timelineContainer = document.getElementById('chord-timeline-' + songId);
-    if (!timelineContainer) return;
-
-    var list = activeSongChords[songId] || [];
-    if (list.length === 0) {
-        timelineContainer.innerHTML = '<span class="text-slate-500 italic text-[11px]">No timestamps recorded yet. Play reference audio & tap a chord above!</span>';
-        return;
-    }
-
-    timelineContainer.innerHTML = list.map(function(item) {
-        return '<span class="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-900/60 border border-purple-500/40 text-purple-200 rounded text-xs font-bold">' +
-            item.chord + ' <span class="text-[10px] text-purple-400 font-normal">(' + item.time + 's)</span>' +
-        '</span>';
-    }).join('');
-};
-
-window.clearSongChords = function(songId) {
-    activeSongChords[songId] = [];
-    window.renderChordTimeline(songId);
-};
-
-window.saveSongChordsToDB = async function(songId) {
-    var list = activeSongChords[songId] || [];
-    if (list.length === 0) {
-        alert('No chords stamped to save!');
-        return;
-    }
-
-    if (typeof db !== 'undefined' && db) {
-        try {
-            var res = await db.from('songs_sandbox').update({ chords: list }).eq('id', songId);
-            if (res.error) {
-                alert('Save failed: ' + res.error.message);
-            } else {
-                alert('Successfully saved ' + list.length + ' chords!');
-            }
-        } catch (err) {
-            alert('Database error: ' + err.message);
-        }
-    } else {
-        alert('Saved in memory (DB disconnected).');
-    }
-};       
+    
