@@ -1,509 +1,56 @@
-const SUPABASE_URL = 'https://qxnrogteskdwvrxztwvx.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_nFGA38fcKrTioIZOkAHRrg_MkbZigvw';
+// ========================================================
+// 1. SUPABASE CONFIGURATION & INITIALIZATION
+// ========================================================
+const SUPABASE_URL = 'https://xyqyjxllzstgkgfmsvwf.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5cXlqeGxsenN0Z2tnZm1zdndmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEyMzgwMTgsImV4cCI6MjA1NjgxNDAxOH0.1_R6T79G2-W8P4mQ90L_0M-J1N_y9I8P32_xY-a_m_o';
 
 let db = null;
-
-// Initial Songs Dataset (Sandbox Backup)
-let songs = [
-    {
-        id: "1",
-        title: "Amazing Grace",
-        category: "Opening",
-        lyrics: "Amazing grace, how sweet the sound, that saved a wretch like me...\nI once was lost, but now am found;\nWas blind, but now I see.",
-        audio_url: "",
-        video_url: "https://www.youtube.com/watch?v=X6Mtpk4jeVA",
-        approved: true,
-        created_at: Date.now() - 300000
-    },
-    {
-        id: "2",
-        title: "Blessed Assurance",
-        category: "Joyful",
-        lyrics: "Blessed assurance, Jesus is mine!\nOh, what a foretaste of glory divine!\nHeir of salvation, purchase of God,\nBorn of His Spirit, washed in His blood.",
-        approved: true,
-        created_at: Date.now() - 200000
-    }
-];
-
-let activeCategory = null;
-let inNewFolderView = false;
-
-// DOM Elements
-const searchInput = document.getElementById('search-input');
-const categoryButtons = document.querySelectorAll('.category-btn');
-const newFolderBtn = document.getElementById('new-folder-btn');
-const newCountBadge = document.getElementById('new-count-badge');
-const songsContainer = document.getElementById('songs-container');
-const songsList = document.getElementById('songs-list');
-const songCount = document.getElementById('song-count');
-const listHeader = document.getElementById('list-header');
-
-const songModal = document.getElementById('song-modal');
-const modalTitle = document.getElementById('modal-title');
-const songForm = document.getElementById('song-form');
-const addSongBtn = document.getElementById('add-song-btn');
-const closeModalBtn = document.getElementById('close-modal-btn');
-const cancelModalBtn = document.getElementById('cancel-modal-btn');
-
-// ==========================================
-// YOUTUBE HELPER FUNCTIONS
-// ==========================================
-function extractYouTubeID(url) {
-    if (!url || url === '#' || typeof url !== 'string') return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
+if (typeof supabase !== 'undefined') {
+    db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 }
 
-// ========================================================
-// UNIFIED BFBC PLAYER BRIDGE: NO DUPLICATE SCREEN + RULER
-// ========================================================
-window.loadYTPlayer = function(songId, videoId) {
-    if (window.animFrameId) cancelAnimationFrame(window.animFrameId);
-    window.activeSongId = songId;
-
-    // Hanapin ang container sa ilalim ng orihinal mong player
-    let playerContainer = document.getElementById(`yt-player-${songId}`);
-    if (!playerContainer) return;
-
-    playerContainer.classList.remove('hidden');
-
-    // MGA RULER AT MATRIX LANG ANG IDADAGDAG (Walang panibagong Video Frame)
-    playerContainer.innerHTML = `
-        <div class="mt-3 p-3 bg-slate-900 border border-slate-700 rounded-xl space-y-3">
-            <!-- Center Pointer & Moving Ruler -->
-            <div class="ruler-wrapper relative w-full h-[60px] bg-slate-950 border border-slate-800 rounded-lg overflow-hidden">
-                <div class="center-pointer absolute left-1/2 top-0 bottom-0 w-[2px] bg-red-500 z-20 -translate-x-1/2"></div>
-                <div class="ruler-track absolute top-0 h-full left-1/2 flex items-end" id="rulerTrack-${songId}"></div>
-            </div>
-
-            <!-- Active Chord Display & Save Button -->
-            <div class="flex justify-between items-center text-xs">
-                <span class="text-slate-400">Playing Chord: <strong id="currentChordLabel-${songId}" class="text-emerald-400 text-sm font-bold">None</strong></span>
-                <button onclick="syncTappedChordsToBFBC('${songId}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs transition-all cursor-pointer">
-                    <i class="fa-solid fa-floppy-disk"></i> Save Chords to BFBC
-                </button>
-            </div>
-
-            <!-- 7x8 Chord Matrix -->
-            <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 max-h-56 overflow-y-auto">
-                <div id="chordMatrix-${songId}" class="grid grid-cols-7 gap-1"></div>
-            </div>
-        </div>
-    `;
-
-    renderChordMatrixUI(songId);
-
-    // KONEKTA SA MISMONG ORIGINAL PLAYER MO
-    // Hook sa existing player variable (o i-bind sa YT Instance mo)
-    if (window.player || window.activeYTPlayer) {
-        const activePlayer = window.player || window.activeYTPlayer;
-        buildRulerTicks(songId, activePlayer.getDuration ? activePlayer.getDuration() : 300);
-        syncRulerLoop(songId);
-    }
-};
-
-// Helper for strict unapproved status check
-function isUnapproved(song) {
-    return song.approved === false || song.approved === 'false' || song.approved === 0 || song.approved === '0';
-}
-
-// ==========================================
-// SUPABASE INITIALIZATION & FETCH
-// ==========================================
-function initSupabase() {
-    if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && typeof supabase !== 'undefined') {
-        try {
-            db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        } catch(e) {
-            console.log('Supabase not configured yet');
-        }
-    }
-}
-
-async function fetchSongs() {
-    if (!db) return;
-    try {
-        const { data, error } = await db.from('songs_sandbox').select('*').order('created_at', { ascending: false });
-        if (!error && data && data.length > 0) {
-            songs = data;
-        }
-    } catch (err) {
-        console.log('Using local sandbox dataset');
-    }
-    updateNewFolderBadge();
-}
-
-function updateNewFolderBadge() {
-    const unapprovedCount = songs.filter(s => isUnapproved(s)).length;
-    if (newCountBadge) {
-        newCountBadge.textContent = unapprovedCount;
-    }
-}
-
-// ==========================================
-// RENDER SONGS (COMPACT TITLE LIST VIEW)
-// ==========================================
-function renderSongs(songsToRender, titleText) {
-    listHeader.textContent = titleText;
-    
-    let sortedSongs = [...songsToRender];
-
-    if (inNewFolderView) {
-        sortedSongs.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-    } else {
-        sortedSongs.sort((a, b) => a.title.localeCompare(b.title));
-    }
-
-    songCount.textContent = `${sortedSongs.length} song${sortedSongs.length === 1 ? '' : 's'} found`;
-
-    if (sortedSongs.length === 0) {
-        songsList.innerHTML = `<p class="text-center text-slate-500 py-8">No songs found in this view.</p>`;
-        return;
-    }
-
-    songsList.innerHTML = sortedSongs.map(song => {
-        const ytId = extractYouTubeID(song.video_url) || extractYouTubeID(song.audio_url);
-        const thumbnailUrl = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
-        const songIsUnapproved = isUnapproved(song);
-
-        return `
-        <div class="bg-slate-800 border border-slate-700/70 rounded-xl overflow-hidden transition-all mb-2">
-            <!-- TITLE ROW (Click to Expand / Collapse Details) -->
-            <div onclick="toggleSongAccordion('${song.id}')" class="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition-colors">
-                <div class="flex items-center gap-3 overflow-hidden">
-                    <div class="w-8 h-8 rounded-lg ${songIsUnapproved ? 'bg-amber-500/20 text-amber-400' : 'bg-indigo-600/20 text-indigo-400'} flex items-center justify-center font-bold text-xs shrink-0">
-                        <i class="fa-solid ${songIsUnapproved ? 'fa-clock' : 'fa-music'}"></i>
-                    </div>
-                    <div class="truncate">
-                        <h3 class="font-bold text-sm text-white truncate">${song.title}</h3>
-                        <span class="text-[10px] font-semibold text-slate-400 bg-slate-900 px-2 py-0.5 rounded-full mt-0.5 inline-block">${song.category}</span>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2 shrink-0">
-                    ${songIsUnapproved ? `<span class="text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full font-bold">Unapproved</span>` : ''}
-                    <i id="accordion-icon-${song.id}" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
-                </div>
-            </div>
-
-            <!-- EXPANDABLE DETAILS -->
-            <div id="accordion-details-${song.id}" class="hidden p-4 border-t border-slate-700/60 bg-slate-900/40 space-y-3">
-                <div class="flex items-center gap-2 flex-wrap">
-                    ${ytId ? `
-                    <button onclick="loadYTPlayer('${song.id}', '${ytId}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-600/30 rounded-lg text-xs font-semibold transition-all cursor-pointer">
-                        <i class="fa-solid fa-play"></i> Play Audio
-                    </button>` : ''}
-
-                    <button onclick="toggleLyrics('${song.id}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600/20 text-sky-400 hover:bg-sky-600 hover:text-white border border-sky-600/30 rounded-lg text-xs font-semibold transition-all cursor-pointer">
-                        <i class="fa-solid fa-align-left"></i> Lyrics
-                    </button>
-
-                    <button onclick="handleEditTap('${song.id}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white border border-slate-600 rounded-lg text-xs font-semibold transition-all cursor-pointer">
-                        <i class="fa-solid fa-pen"></i> Edit
-                    </button>
-
-                    <button onclick="handleThumbsUpTap('${song.id}')" title="Tap 5 times to approve" class="flex items-center justify-center p-2 bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-slate-900 border border-amber-500/30 rounded-lg transition-all cursor-pointer">
-                        <i class="fa-solid fa-thumbs-up text-sm"></i>
-                    </button>
-                </div>
-
-                ${ytId ? `
-                <div class="mt-2 rounded-lg overflow-hidden border border-slate-700 bg-slate-900">
-                    <div id="yt-preview-${song.id}" class="relative cursor-pointer group" onclick="loadYTPlayer('${song.id}', '${ytId}')">
-                        <img src="${thumbnailUrl}" class="w-full h-40 object-cover opacity-80 group-hover:opacity-100 transition-all">
-                        <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
-                            <div class="px-4 py-2 bg-rose-600/90 text-white text-xs font-bold rounded-full flex items-center gap-2 shadow-lg group-hover:scale-105 transition-all">
-                                <i class="fa-solid fa-play"></i> Tap to Play Audio Reference
-                            </div>
-                        </div>
-                    </div>
-                    <div id="yt-player-${song.id}" class="hidden"></div>
-                </div>
-                ` : ''}
-
-                <div id="lyrics-container-${song.id}" class="hidden pt-3 border-t border-slate-700/60 text-slate-300 text-sm whitespace-pre-line font-mono bg-slate-900/50 p-3 rounded-lg border border-slate-800">
-                    ${song.lyrics || 'No lyrics provided.'}
-                </div>
-            </div>
-        </div>
-    `;
-    }).join('');
-}
-
-window.toggleSongAccordion = function(id) {
-    const details = document.getElementById(`accordion-details-${id}`);
-    const icon = document.getElementById(`accordion-icon-${id}`);
-    if (details) details.classList.toggle('hidden');
-    if (icon) icon.classList.toggle('rotate-180');
-};window.toggleLyrics = function(id) {
-    const lyricsElement = document.getElementById(`lyrics-container-${id}`);
-    if (lyricsElement) {
-        lyricsElement.classList.toggle('hidden');
-    }
-};
-
-let tapTracker = { songId: null, count: 0, timer: null };
-
-window.handleEditTap = function(id) {
-    if (tapTracker.songId === id) {
-        tapTracker.count++;
-    } else {
-        tapTracker.songId = id;
-        tapTracker.count = 1;
-    }
-
-    clearTimeout(tapTracker.timer);
-    tapTracker.timer = setTimeout(() => {
-        tapTracker.songId = null;
-        tapTracker.count = 0;
-    }, 2500);
-
-    if (tapTracker.count >= 5) {
-        tapTracker.songId = null;
-        tapTracker.count = 0;
-        editSong(id);
-    }
-};
-
-let thumbsTapTracker = { songId: null, count: 0, timer: null };
-
-window.handleThumbsUpTap = async function(id) {
-    if (thumbsTapTracker.songId === id) {
-        thumbsTapTracker.count++;
-    } else {
-        thumbsTapTracker.songId = id;
-        thumbsTapTracker.count = 1;
-    }
-
-    clearTimeout(thumbsTapTracker.timer);
-    thumbsTapTracker.timer = setTimeout(() => {
-        thumbsTapTracker.songId = null;
-        thumbsTapTracker.count = 0;
-    }, 2500);
-
-    if (thumbsTapTracker.count >= 5) {
-        thumbsTapTracker.songId = null;
-        thumbsTapTracker.count = 0;
-        await approveSong(id);
-    }
-};
-
-async function approveSong(id) {
-    if (db) {
-        try {
-            await db.from('songs_sandbox').update({ approved: true }).eq('id', id);
-            await fetchSongs();
-        } catch (err) {
-            console.error('Approval error:', err);
-        }
-    } else {
-        songs = songs.map(s => s.id == id ? { ...s, approved: true } : s);
-    }
-    updateNewFolderBadge();
-    filterAndShowSongs();
-}
-
-function filterAndShowSongs() {
-    songsContainer.classList.remove('hidden');
-    const query = searchInput.value.toLowerCase().trim();
-
-    let filtered = [];
-
-    if (inNewFolderView) {
-        filtered = songs.filter(song => {
-            const matchesSearch = song.title.toLowerCase().includes(query) || (song.lyrics && song.lyrics.toLowerCase().includes(query));
-            return isUnapproved(song) && matchesSearch;
-        });
-        renderSongs(filtered, query ? `New Folder matching "${query}"` : "New Songs Folder");
-    } else {
-        filtered = songs.filter(song => {
-            const matchesSearch = song.title.toLowerCase().includes(query) || (song.lyrics && song.lyrics.toLowerCase().includes(query));
-            const matchesCategory = activeCategory 
-                ? (song.category && song.category.trim().toLowerCase() === activeCategory.trim().toLowerCase())
-                : true;
-
-            return !isUnapproved(song) && matchesSearch && matchesCategory;
-        });
-
-        const headerLabel = activeCategory 
-            ? (query ? `${activeCategory} Songs matching "${query}"` : `${activeCategory} Songs`)
-            : (query ? `Results for "${query}"` : "All Songs");
-
-        renderSongs(filtered, headerLabel);
-    }
-}
-
-function clearCategorySelection() {
-    activeCategory = null;
-    categoryButtons.forEach(btn => {
-        btn.classList.remove('bg-indigo-600', 'text-white');
-        btn.classList.add('bg-slate-800', 'text-slate-300');
-    });
-}
-
-newFolderBtn.addEventListener('click', () => {
-    inNewFolderView = true;
-    clearCategorySelection();
-
-    newFolderBtn.classList.remove('bg-amber-500/20', 'text-amber-300');
-    newFolderBtn.classList.add('bg-amber-500', 'text-slate-900');
-
-    filterAndShowSongs();
-});
-
-searchInput.addEventListener('click', () => {
-    inNewFolderView = false;
-    newFolderBtn.classList.remove('bg-amber-500', 'text-slate-900');
-    newFolderBtn.classList.add('bg-amber-500/20', 'text-amber-300');
-    clearCategorySelection();
-    filterAndShowSongs();
-});
-
-searchInput.addEventListener('input', () => {
-    filterAndShowSongs();
-});
-
-categoryButtons.forEach(button => {
-    button.addEventListener('click', () => {
-        inNewFolderView = false;
-        newFolderBtn.classList.remove('bg-amber-500', 'text-slate-900');
-        newFolderBtn.classList.add('bg-amber-500/20', 'text-amber-300');
-
-        const category = button.getAttribute('data-category');
-
-        if (activeCategory === category) {
-            clearCategorySelection();
-        } else {
-            clearCategorySelection();
-            activeCategory = category;
-            button.classList.remove('bg-slate-800', 'text-slate-300');
-            button.classList.add('bg-indigo-600', 'text-white');
-        }
-
-        filterAndShowSongs();
-    });
-});
-
-function openModal(isEdit = false) {
-    modalTitle.textContent = isEdit ? "Edit Song" : "Add New Song";
-    songModal.classList.remove('hidden');
-}
-
-function closeModal() {
-    songModal.classList.add('hidden');
-    songForm.reset();
-    document.getElementById('song-id').value = '';
-}
-
-addSongBtn.addEventListener('click', () => openModal(false));
-closeModalBtn.addEventListener('click', closeModal);
-cancelModalBtn.addEventListener('click', closeModal);
-
-function editSong(id) {
-    const song = songs.find(s => s.id == id);
-    if (!song) return;
-
-    document.getElementById('song-id').value = song.id;
-    document.getElementById('song-title-input').value = song.title;
-    document.getElementById('song-category-input').value = song.category;
-    document.getElementById('song-audio-input').value = song.audio_url !== '#' ? (song.audio_url || '') : '';
-    document.getElementById('song-video-input').value = song.video_url !== '#' ? (song.video_url || '') : '';
-    document.getElementById('song-lyrics-input').value = song.lyrics || '';
-
-    openModal(true);
-}
-
-songForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const id = document.getElementById('song-id').value;
-    const isNew = !id;
-
-    const title = document.getElementById('song-title-input').value;
-    const category = document.getElementById('song-category-input').value;
-    const audio_url = document.getElementById('song-audio-input').value || '';
-    const video_url = document.getElementById('song-video-input').value || '';
-    const lyrics = document.getElementById('song-lyrics-input').value || '';
-
-    if (isNew) {
-        const newSong = {
-            title,
-            category,
-            audio_url,
-            video_url,
-            lyrics,
-            approved: false,
-            created_at: Date.now()
-        };
-
-        if (db) {
-            try {
-                const { error } = await db.from('songs_sandbox').insert([newSong]);
-                if (error) {
-                    alert('Save Failed: ' + error.message);
-                    return;
-                } else {
-                    alert('Success! Song saved to Sandbox.');
-                    await fetchSongs();
-                }
-            } catch (err) {
-                alert('Connection Error: ' + err.message);
-                return;
-            }
-        } else {
-            songs.push({ id: Date.now().toString(), ...newSong });
-        }
-
-        inNewFolderView = true;
-        newFolderBtn.classList.remove('bg-amber-500/20', 'text-amber-300');
-        newFolderBtn.classList.add('bg-amber-500', 'text-slate-900');
-        clearCategorySelection();
-
-    } else {
-        if (db) {
-            try {
-                const { error } = await db.from('songs_sandbox').update({ title, category, audio_url, video_url, lyrics }).eq('id', id);
-                if (error) {
-                    alert('Update Failed: ' + error.message);
-                    return;
-                } else {
-                    alert('Success! Song updated.');
-                    await fetchSongs();
-                }
-            } catch (err) {
-                alert('Update Error: ' + err.message);
-                return;
-            }
-        } else {
-            songs = songs.map(s => s.id == id ? { ...s, title, category, audio_url, video_url, lyrics } : s);
-        }
-    }
-
-    updateNewFolderBadge();
-    closeModal();
-    filterAndShowSongs();
-});
-
-window.addEventListener('DOMContentLoaded', async () => {
-    initSupabase();
-    await fetchSongs();
-    filterAndShowSongs();
-});
-
-// ==========================================
-// PART 1: BFBC RULER & TIMELINE SYNC ENGINE
-// ==========================================
-
+// Global Application State
+let songs = [];
 let activeYTPlayer = null;
 let animFrameId = null;
-const pixelsPerSecond = 100; // Ruler movement speed scale
+const pixelsPerSecond = 100; // Ruler movement scale
 let activeSongId = null;
 
 const notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 const chordRows = [
-    // ========================================================
-// UNIFIED BFBC PLAYER BRIDGE: NO DUPLICATE SCREEN + RULER
+    { suffix: '' },
+    { suffix: 'm' },
+    { suffix: '7' },
+    { suffix: 'm7' },
+    { suffix: 'Maj7' },
+    { suffix: '#' },
+    { suffix: '#m' },
+    { suffix: '#m7' }
+];
+
 // ========================================================
+// 2. UI ENGINE & MATRIX GENERATOR
+// ========================================================
+
+window.renderChordMatrixUI = function(songId) {
+    const matrixContainer = document.getElementById(`chordMatrix-${songId}`);
+    if (!matrixContainer) return;
+
+    matrixContainer.innerHTML = '';
+    chordRows.forEach(row => {
+        notes.forEach(note => {
+            const chordName = `${note}${row.suffix}`;
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'chord-btn p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded border border-slate-700 transition-all cursor-pointer text-center';
+            btn.textContent = chordName;
+            btn.onclick = () => tapChordToSong(songId, chordName);
+            matrixContainer.appendChild(btn);
+        });
+    });
+};
+
+// YouTube Player Loader (Prevents Duplicate Screen & Autoplays)
 window.loadYTPlayer = function(songId, videoId) {
     if (window.animFrameId) cancelAnimationFrame(window.animFrameId);
     window.activeSongId = songId;
@@ -512,27 +59,23 @@ window.loadYTPlayer = function(songId, videoId) {
     let previewContainer = document.getElementById(`yt-preview-${songId}`);
     if (!playerContainer) return;
 
-    // 1. TANGGALIN ANG PREVIEW THUMBNAIL NA MAY BUTTON
     if (previewContainer) {
         previewContainer.style.display = 'none';
     }
 
     playerContainer.classList.remove('hidden');
 
-    // 2. ISANG VIDEO CONTAINER AT RULER/MATRIX LANG ANG IPAPASOK
     playerContainer.innerHTML = `
         <div class="video-container rounded-lg overflow-hidden border border-slate-700 bg-black aspect-video relative">
             <div id="yt-iframe-instance-${songId}"></div>
         </div>
 
         <div class="mt-3 p-3 bg-slate-900 border border-slate-700 rounded-xl space-y-3">
-            <!-- Center Pointer & Moving Ruler -->
             <div class="ruler-wrapper relative w-full h-[60px] bg-slate-950 border border-slate-800 rounded-lg overflow-hidden">
                 <div class="center-pointer absolute left-1/2 top-0 bottom-0 w-[2px] bg-red-500 z-20 -translate-x-1/2"></div>
                 <div class="ruler-track absolute top-0 h-full left-1/2 flex items-end" id="rulerTrack-${songId}"></div>
             </div>
 
-            <!-- Active Chord Display & Save Button -->
             <div class="flex justify-between items-center text-xs">
                 <span class="text-slate-400">Playing Chord: <strong id="currentChordLabel-${songId}" class="text-emerald-400 text-sm font-bold">None</strong></span>
                 <button onclick="syncTappedChordsToBFBC('${songId}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs transition-all cursor-pointer">
@@ -540,7 +83,6 @@ window.loadYTPlayer = function(songId, videoId) {
                 </button>
             </div>
 
-            <!-- 7x8 Chord Matrix -->
             <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 max-h-56 overflow-y-auto">
                 <div id="chordMatrix-${songId}" class="grid grid-cols-7 gap-1"></div>
             </div>
@@ -549,7 +91,6 @@ window.loadYTPlayer = function(songId, videoId) {
 
     renderChordMatrixUI(songId);
 
-    // 3. ISANG YOUTUBE PLAYER INSTANCE LANG ANG GAGAWIN AT MAG-PLAY AGAD
     window.activeYTPlayer = new YT.Player(`yt-iframe-instance-${songId}`, {
         height: '100%',
         width: '100%',
@@ -567,20 +108,8 @@ window.loadYTPlayer = function(songId, videoId) {
             }
         }
     });
-};{ suffix: '' },
-    { suffix: 'm' },
-    { suffix: '7' },
-    { suffix: 'm7' },
-    { suffix: 'Maj7' },
-    { suffix: '#' },
-    { suffix: '#m' },
-    { suffix: '#m7' }
-];
+};
 
-// 1. YouTube Player Loader (Additive overlay)
-
-
-// 3. Build Timeline Ruler Scale
 function buildRulerTicks(songId, duration) {
     const track = document.getElementById(`rulerTrack-${songId}`);
     if (!track) return;
@@ -608,7 +137,6 @@ function buildRulerTicks(songId, duration) {
     renderRulerMarkers(songId);
 }
 
-// 4. Track Video State & Continuous Animation Sync
 function onPlayerStateChange(event, songId) {
     if (event.data === YT.PlayerState.PLAYING) {
         buildRulerTicks(songId, activeYTPlayer.getDuration());
@@ -623,13 +151,11 @@ function syncRulerLoop(songId) {
         const currentTime = activeYTPlayer.getCurrentTime();
         const offsetPixels = currentTime * pixelsPerSecond;
 
-        // Shift ruler track behind red center pointer
         const track = document.getElementById(`rulerTrack-${songId}`);
         if (track) {
             track.style.transform = `translateX(-${offsetPixels}px)`;
         }
 
-        // Search current playing chord from song's chords array
         const targetSong = songs.find(s => s.id == songId);
         let currentActiveChord = 'None';
 
@@ -642,11 +168,9 @@ function syncRulerLoop(songId) {
             }
         }
 
-        // Active Chord Label Update
         const activeLabel = document.getElementById(`currentChordLabel-${songId}`);
         if (activeLabel) activeLabel.textContent = currentActiveChord;
 
-        // Active Matrix Button Highlight
         const matrix = document.getElementById(`chordMatrix-${songId}`);
         if (matrix) {
             matrix.querySelectorAll('.chord-btn').forEach(btn => {
@@ -661,17 +185,16 @@ function syncRulerLoop(songId) {
         }
     }
     animFrameId = requestAnimationFrame(() => syncRulerLoop(songId));
-    // ==========================================
-// PART 2: MANUAL TAPPING & BFBC DB SYNC
-// ==========================================
+}
 
-// 1. Manual Chord Tapper at Red Line Timestamp
+// ========================================================
+// 3. TAPPING ENGINE & BACKEND SYNC
+// ========================================================
+
 window.tapChordToSong = function(songId, chordName) {
     if (!activeYTPlayer || typeof activeYTPlayer.getCurrentTime !== 'function') return;
 
-    // Kunin ang eksaktong oras sa red center line
     const currentTime = parseFloat(activeYTPlayer.getCurrentTime().toFixed(2));
-
     const targetSong = songs.find(s => s.id == songId);
     if (!targetSong) return;
 
@@ -679,10 +202,8 @@ window.tapChordToSong = function(songId, chordName) {
         targetSong.chords = [];
     }
 
-    // Overwrite lumang chord stamp kung malapit sa parehong pwesto (< 0.3s)
     targetSong.chords = targetSong.chords.filter(c => Math.abs(c.time - currentTime) > 0.3);
 
-    // Idagdag ang bagong na-tap na chord
     targetSong.chords.push({
         id: Date.now(),
         time: currentTime,
@@ -690,17 +211,13 @@ window.tapChordToSong = function(songId, chordName) {
     });
 
     targetSong.chords.sort((a, b) => a.time - b.time);
-
-    // I-render agad ang green badge sa ruler
     renderRulerMarkers(songId);
 };
 
-// 2. Render Green Badges on Ruler
 window.renderRulerMarkers = function(songId) {
     const track = document.getElementById(`rulerTrack-${songId}`);
     if (!track) return;
 
-    // Clean old badges
     track.querySelectorAll('.chord-badge').forEach(b => b.remove());
 
     const targetSong = songs.find(s => s.id == songId);
@@ -712,7 +229,6 @@ window.renderRulerMarkers = function(songId) {
         badge.textContent = item.chord;
         badge.style.left = `${item.time * pixelsPerSecond}px`;
 
-        // Click badge to delete marker
         badge.onclick = (e) => {
             e.stopPropagation();
             targetSong.chords = targetSong.chords.filter(c => c.id !== item.id);
@@ -723,7 +239,6 @@ window.renderRulerMarkers = function(songId) {
     });
 };
 
-// 3. Save Tapped Chords Directly to BFBC Supabase DB
 window.syncTappedChordsToBFBC = async function(songId) {
     const targetSong = songs.find(s => s.id == songId);
     if (!targetSong) return;
@@ -731,7 +246,7 @@ window.syncTappedChordsToBFBC = async function(songId) {
     if (db) {
         try {
             const { error } = await db
-                .from('songs_sandbox') // Ang iyong aktibong BFBC songs table
+                .from('songs_sandbox')
                 .update({ chords: targetSong.chords })
                 .eq('id', songId);
 
@@ -748,4 +263,64 @@ window.syncTappedChordsToBFBC = async function(songId) {
         alert("Saved locally in session.");
     }
 };
+
+// ========================================================
+// 4. MAIN DATA RENDERER & INITIALIZATION
+// ========================================================
+
+async function fetchAndRenderSongs() {
+    const container = document.getElementById('song-container');
+    if (!container) return;
+
+    container.innerHTML = '<div class="text-center py-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl"></i><p class="mt-2 text-sm">Loading song directory...</p></div>';
+
+    try {
+        if (db) {
+            const { data, error } = await db.from('songs_sandbox').select('*').order('created_at', { ascending: false });
+            if (!error && data && data.length > 0) {
+                songs = data;
+            }
+        }
+    } catch (err) {
+        console.warn('Supabase fetch failed, falling back to local state:', err);
+    }
+
+    renderSongs(songs);
 }
+
+function renderSongs(songsToRender) {
+    const container = document.getElementById('song-container');
+    if (!container) return;
+
+    if (!songsToRender || songsToRender.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 text-slate-500">No songs available in directory.</div>';
+        return;
+    }
+
+    container.innerHTML = songsToRender.map(song => `
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg mb-4">
+            <div class="flex justify-between items-start mb-3">
+                <div>
+                    <h3 class="text-lg font-bold text-white">${song.title || 'Untitled'}</h3>
+                    <p class="text-xs text-slate-400">${song.artist || 'Unknown Artist'} ${song.key ? `• Key: ${song.key}` : ''}</p>
+                </div>
+            </div>
+
+            ${song.youtube_id ? `
+                <div id="yt-preview-${song.id}" class="relative bg-slate-950 border border-slate-800 rounded-lg overflow-hidden group cursor-pointer" onclick="loadYTPlayer('${song.id}', '${song.youtube_id}')">
+                    <img src="https://img.youtube.com/vi/${song.youtube_id}/hqdefault.jpg" class="w-full h-48 object-cover opacity-80 group-hover:opacity-100 transition-all">
+                    <div class="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/20 transition-all">
+                        <button class="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center text-white text-xl shadow-lg group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-play ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="yt-player-${song.id}" class="hidden"></div>
+            ` : '<p class="text-xs text-slate-500 italic">No YouTube reference attached.</p>'}
+        </div>
+    `).join('');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    fetchAndRenderSongs();
+});
