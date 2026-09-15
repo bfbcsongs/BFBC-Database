@@ -184,69 +184,129 @@ window.loadYTPlayer = function(songId, videoId) {
         </div>
 
         <!-- 5. Sharps Major (C# D# F# G# A#) -->
-        <div class="space-y-1">
-          <span class="text-[9px] font-bold text-teal-400 uppercase tracking-wider block px-1">5. # Major</span>
-          <div class="grid grid-cols-5 gap-1.5">
-            <button type="button" onclick="tapTipaChord('C#')" class="bg-teal-700 text-teal-100 font-bold text-xs py-2 rounded-lg active:scale-90">C#</button>
-            <button type="button" onclick="tapTipaChord('D#')" class="bg-teal-700 text-teal-100 font-bold text-xs py-2 rounded-lg active:scale-90">D#</button>
-            <button type="button" onclick="tapTipaChord('F#')" class="bg-teal-700 text-teal-100 font-bold text-xs py-2 rounded-lg active:scale-90">F#</button>
-            <button type="button" onclick="tapTipaChord('G#')" class="bg-teal-700 text-teal-100 font-bold text-xs py-2 rounded-lg active:scale-90">G#</button>
-            <button type="button" onclick="tapTipaChord('A#')" class="bg-teal-700 text-teal-100 font-bold text-xs py-2 rounded-lg active:scale-90">A#</button>
-          </div>
-        </div>
-
-        <!-- 6. Sharps Major 7th (C#maj7 D#maj7 F#maj7 G#maj7 A#maj7) -->
-        <div class="space-y-1">
-          <span class="text-[9px] font-bold text-emerald-400 uppercase tracking-wider block px-1">6. # Major 7th</span>
-          <div class="grid grid-cols-5 gap-1.5">
-            <button type="button" onclick="tapTipaChord('C#maj7')" class="bg-emerald-700 text-emerald-100 font-bold text-[9px] py-2 rounded-lg active:scale-90">C#maj7</button>
-            <button type="button" onclick="tapTipaChord('D#maj7')" class="bg-emerald-700 text-emerald-100 font-bold text-[9px] py-2 rounded-lg active:scale-90">D#maj7</button>
-            <button type="button" onclick="tapTipaChord('F#maj7')" class="bg-emerald-700 text-emerald-100 font-bold text-[9px] py-2 rounded-lg active:scale-90">F#maj7</button>
-            <button type="button" onclick="tapTipaChord('G#maj7')" class="bg-emerald-700 text-emerald-100 font-bold text-[9px] py-2 rounded-lg active:scale-90">G#maj7</button>
-            <button type="button" onclick="tapTipaChord('A#maj7')" class="bg-emerald-700 text-emerald-100 font-bold text-[9px] py-2 rounded-lg active:scale-90">A#maj7</button>
-          </div>
-        </div>
-
-        <!-- 7. Sharps Minor (C#m D#m F#m G#m A#m) -->
-        <div class="space-y-1">
-          <span class="text-[9px] font-bold text-amber-400 uppercase tracking-wider block px-1">7. # Minor</span>
-          <div class="grid grid-cols-5 gap-1.5">
-            <button type="button" onclick="tapTipaChord('C#m')" class="bg-amber-700 text-amber-100 font-bold text-xs py-2 rounded-lg active:scale-90">C#m</button>
-            <button type="button" onclick="tapTipaChord('D#m')" class="bg-amber-700 text-amber-100 font-bold text-xs py-2 rounded-lg active:scale-90">D#m</button>
-            <button type="button" onclick="tapTipaChord('F#m')" class="bg-amber-700 text-amber-100 font-bold text-xs py-2 rounded-lg active:scale-90">F#m</button>
-            <button type="button" onclick="tapTipaChord('G#m')" class="bg-amber-700 text-amber-100 font-bold text-xs py-2 rounded-lg active:scale-90">G#m</button>
-            <button type="button" onclick="tapTipaChord('A#m')" class="bg-amber-700 text-amber-100 font-bold text-xs py-2 rounded-lg active:scale-90">A#m</button>
-          </div>
-        </div>
-
-        <!-- 8. Sharps Minor 7th (C#m7 D#m7 F#m7 G#m7 A#m7) -->
-        <div class="space-y-1">
-          <span class="text-[9px] font-bold text-rose-400 uppercase tracking-wider block px-1">8. # Minor 7th</span>
-          <div class="grid grid-cols-5 gap-1.5">
-            <button type="button" onclick="tapTipaChord('C#m7')" class="bg-rose-700 text-rose-100 font-bold text-[9px] py-2 rounded-lg active:scale-90">C#m7</button>
-            <button type="button" onclick="tapTipaChord('D#m7')" class="bg-rose-700 text-rose-100 font-bold text-[9px] py-2 rounded-lg active:scale-90">D#m7</button>
-            <button type="button" onclick="tapTipaChord('F#m7')" class="bg-rose-700 text-rose-100 font-bold text-[9px] py-2 rounded-lg active:scale-90">F#m7</button>
-            <button type="button" onclick="tapTipaChord('G#m7')" class="bg-rose-700 text-rose-100 font-bold text-[9px] py-2 rounded-lg active:scale-90">G#m7</button>
-            <button type="button" onclick="tapTipaChord('A#m7')" class="bg-rose-700 text-rose-100 font-bold text-[9px] py-2 rounded-lg active:scale-90">A#m7</button>
-          </div>
-        </div>
-
+<!-- FULL EXTENDED CHORD SELECTION PANEL -->
+<div id="tipa-edit-ctrl" class="hidden space-y-4 w-full">
+  
+  <!-- Outer Wrapper - Completely Unrestricted Height -->
+  <div class="bg-slate-950/95 p-4 rounded-2xl border border-slate-800 space-y-4 w-full shadow-2xl">
+    
+    <!-- 1. MAJOR -->
+    <div class="space-y-1.5">
+      <span class="text-[10px] font-extrabold text-indigo-400 uppercase tracking-widest block px-1">1. MAJOR</span>
+      <div class="grid grid-cols-7 gap-1.5">
+        <button type="button" onclick="tapTipaChord('C')" class="bg-indigo-600 active:bg-indigo-400 text-white font-black text-xs py-3 rounded-xl shadow active:scale-90 transition">C</button>
+        <button type="button" onclick="tapTipaChord('D')" class="bg-indigo-600 active:bg-indigo-400 text-white font-black text-xs py-3 rounded-xl shadow active:scale-90 transition">D</button>
+        <button type="button" onclick="tapTipaChord('E')" class="bg-indigo-600 active:bg-indigo-400 text-white font-black text-xs py-3 rounded-xl shadow active:scale-90 transition">E</button>
+        <button type="button" onclick="tapTipaChord('F')" class="bg-indigo-600 active:bg-indigo-400 text-white font-black text-xs py-3 rounded-xl shadow active:scale-90 transition">F</button>
+        <button type="button" onclick="tapTipaChord('G')" class="bg-indigo-600 active:bg-indigo-400 text-white font-black text-xs py-3 rounded-xl shadow active:scale-90 transition">G</button>
+        <button type="button" onclick="tapTipaChord('A')" class="bg-indigo-600 active:bg-indigo-400 text-white font-black text-xs py-3 rounded-xl shadow active:scale-90 transition">A</button>
+        <button type="button" onclick="tapTipaChord('B')" class="bg-indigo-600 active:bg-indigo-400 text-white font-black text-xs py-3 rounded-xl shadow active:scale-90 transition">B</button>
       </div>
+    </div>
 
-      <!-- Footer Buttons -->
-      <div class="flex items-center justify-between gap-2 pt-1">
-        <button type="button" onclick="undoTipaChord()" class="bg-slate-800 text-amber-400 border border-slate-700 text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1 active:scale-95">
-          <i class="fa-solid fa-rotate-left"></i> Undo
-        </button>
-        <div class="flex gap-2">
-          <button type="button" onclick="toggleTipaEditMode(false)" class="bg-slate-800 text-slate-300 text-xs font-bold px-4 py-2 rounded-xl hover:bg-slate-700">Exit</button>
-          <button type="button" onclick="saveTipaProject()" class="bg-emerald-600 text-white text-xs font-bold px-5 py-2 rounded-xl shadow-lg active:scale-95">Save</button>
-        </div>
+    <!-- 2. MAJOR 7TH -->
+    <div class="space-y-1.5">
+      <span class="text-[10px] font-extrabold text-blue-400 uppercase tracking-widest block px-1">2. MAJOR 7TH</span>
+      <div class="grid grid-cols-7 gap-1.5">
+        <button type="button" onclick="tapTipaChord('Cmaj7')" class="bg-blue-600 text-white font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">Cmaj7</button>
+        <button type="button" onclick="tapTipaChord('Dmaj7')" class="bg-blue-600 text-white font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">Dmaj7</button>
+        <button type="button" onclick="tapTipaChord('Emaj7')" class="bg-blue-600 text-white font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">Emaj7</button>
+        <button type="button" onclick="tapTipaChord('Fmaj7')" class="bg-blue-600 text-white font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">Fmaj7</button>
+        <button type="button" onclick="tapTipaChord('Gmaj7')" class="bg-blue-600 text-white font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">Gmaj7</button>
+        <button type="button" onclick="tapTipaChord('Amaj7')" class="bg-blue-600 text-white font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">Amaj7</button>
+        <button type="button" onclick="tapTipaChord('Bmaj7')" class="bg-blue-600 text-white font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">Bmaj7</button>
       </div>
+    </div>
 
+    <!-- 3. MINOR -->
+    <div class="space-y-1.5">
+      <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block px-1">3. MINOR</span>
+      <div class="grid grid-cols-7 gap-1.5">
+        <button type="button" onclick="tapTipaChord('Cm')" class="bg-slate-700 text-slate-100 font-bold text-xs py-2.5 rounded-xl active:scale-90 transition">Cm</button>
+        <button type="button" onclick="tapTipaChord('Dm')" class="bg-slate-700 text-slate-100 font-bold text-xs py-2.5 rounded-xl active:scale-90 transition">Dm</button>
+        <button type="button" onclick="tapTipaChord('Em')" class="bg-slate-700 text-slate-100 font-bold text-xs py-2.5 rounded-xl active:scale-90 transition">Em</button>
+        <button type="button" onclick="tapTipaChord('Fm')" class="bg-slate-700 text-slate-100 font-bold text-xs py-2.5 rounded-xl active:scale-90 transition">Fm</button>
+        <button type="button" onclick="tapTipaChord('Gm')" class="bg-slate-700 text-slate-100 font-bold text-xs py-2.5 rounded-xl active:scale-90 transition">Gm</button>
+        <button type="button" onclick="tapTipaChord('Am')" class="bg-slate-700 text-slate-100 font-bold text-xs py-2.5 rounded-xl active:scale-90 transition">Am</button>
+        <button type="button" onclick="tapTipaChord('Bm')" class="bg-slate-700 text-slate-100 font-bold text-xs py-2.5 rounded-xl active:scale-90 transition">Bm</button>
+      </div>
+    </div>
+
+    <!-- 4. MINOR 7TH -->
+    <div class="space-y-1.5">
+      <span class="text-[10px] font-extrabold text-cyan-400 uppercase tracking-widest block px-1">4. MINOR 7TH</span>
+      <div class="grid grid-cols-7 gap-1.5">
+        <button type="button" onclick="tapTipaChord('Cm7')" class="bg-cyan-700 text-cyan-100 font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">Cm7</button>
+        <button type="button" onclick="tapTipaChord('Dm7')" class="bg-cyan-700 text-cyan-100 font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">Dm7</button>
+        <button type="button" onclick="tapTipaChord('Em7')" class="bg-cyan-700 text-cyan-100 font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">Em7</button>
+        <button type="button" onclick="tapTipaChord('Fm7')" class="bg-cyan-700 text-cyan-100 font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">Fm7</button>
+        <button type="button" onclick="tapTipaChord('Gm7')" class="bg-cyan-700 text-cyan-100 font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">Gm7</button>
+        <button type="button" onclick="tapTipaChord('Am7')" class="bg-cyan-700 text-cyan-100 font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">Am7</button>
+        <button type="button" onclick="tapTipaChord('Bm7')" class="bg-cyan-700 text-cyan-100 font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">Bm7</button>
+      </div>
+    </div>
+
+    <!-- 5. # MAJOR -->
+    <div class="space-y-1.5">
+      <span class="text-[10px] font-extrabold text-teal-400 uppercase tracking-widest block px-1">5. # MAJOR</span>
+      <div class="grid grid-cols-5 gap-1.5">
+        <button type="button" onclick="tapTipaChord('C#')" class="bg-teal-700 text-teal-100 font-bold text-xs py-2.5 rounded-xl active:scale-90 transition">C#</button>
+        <button type="button" onclick="tapTipaChord('D#')" class="bg-teal-700 text-teal-100 font-bold text-xs py-2.5 rounded-xl active:scale-90 transition">D#</button>
+        <button type="button" onclick="tapTipaChord('F#')" class="bg-teal-700 text-teal-100 font-bold text-xs py-2.5 rounded-xl active:scale-90 transition">F#</button>
+        <button type="button" onclick="tapTipaChord('G#')" class="bg-teal-700 text-teal-100 font-bold text-xs py-2.5 rounded-xl active:scale-90 transition">G#</button>
+        <button type="button" onclick="tapTipaChord('A#')" class="bg-teal-700 text-teal-100 font-bold text-xs py-2.5 rounded-xl active:scale-90 transition">A#</button>
+      </div>
+    </div>
+
+    <!-- 6. # MAJOR 7TH -->
+    <div class="space-y-1.5">
+      <span class="text-[10px] font-extrabold text-emerald-400 uppercase tracking-widest block px-1">6. # MAJOR 7TH</span>
+      <div class="grid grid-cols-5 gap-1.5">
+        <button type="button" onclick="tapTipaChord('C#maj7')" class="bg-emerald-700 text-emerald-100 font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">C#maj7</button>
+        <button type="button" onclick="tapTipaChord('D#maj7')" class="bg-emerald-700 text-emerald-100 font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">D#maj7</button>
+        <button type="button" onclick="tapTipaChord('F#maj7')" class="bg-emerald-700 text-emerald-100 font-bold text-[9px] py-2.5 rounded-xl active:scale-90 transition">F#maj7</button>
+        <button type="button" onclick="tapTipaChord('G#maj7')" class="bg-emerald-700 text-emerald-100 font-bold text-[9px] py-2.5 rounded-xl active:scale-90 transition">G#maj7</button>
+        <button type="button" onclick="tapTipaChord('A#maj7')" class="bg-emerald-700 text-emerald-100 font-bold text-[9px] py-2.5 rounded-xl active:scale-90 transition">A#maj7</button>
+      </div>
+    </div>
+
+    <!-- 7. # MINOR (Visible Now) -->
+    <div class="space-y-1.5">
+      <span class="text-[10px] font-extrabold text-amber-400 uppercase tracking-widest block px-1">7. # MINOR</span>
+      <div class="grid grid-cols-5 gap-1.5">
+        <button type="button" onclick="tapTipaChord('C#m')" class="bg-amber-700 text-amber-100 font-bold text-xs py-2.5 rounded-xl active:scale-90 transition">C#m</button>
+        <button type="button" onclick="tapTipaChord('D#m')" class="bg-amber-700 text-amber-100 font-bold text-xs py-2.5 rounded-xl active:scale-90 transition">D#m</button>
+        <button type="button" onclick="tapTipaChord('F#m')" class="bg-amber-700 text-amber-100 font-bold text-xs py-2.5 rounded-xl active:scale-90 transition">F#m</button>
+        <button type="button" onclick="tapTipaChord('G#m')" class="bg-amber-700 text-amber-100 font-bold text-xs py-2.5 rounded-xl active:scale-90 transition">G#m</button>
+        <button type="button" onclick="tapTipaChord('A#m')" class="bg-amber-700 text-amber-100 font-bold text-xs py-2.5 rounded-xl active:scale-90 transition">A#m</button>
+      </div>
+    </div>
+
+    <!-- 8. # MINOR 7TH (Visible Now) -->
+    <div class="space-y-1.5">
+      <span class="text-[10px] font-extrabold text-rose-400 uppercase tracking-widest block px-1">8. # MINOR 7TH</span>
+      <div class="grid grid-cols-5 gap-1.5">
+        <button type="button" onclick="tapTipaChord('C#m7')" class="bg-rose-700 text-rose-100 font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">C#m7</button>
+        <button type="button" onclick="tapTipaChord('D#m7')" class="bg-rose-700 text-rose-100 font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">D#m7</button>
+        <button type="button" onclick="tapTipaChord('F#m7')" class="bg-rose-700 text-rose-100 font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">F#m7</button>
+        <button type="button" onclick="tapTipaChord('G#m7')" class="bg-rose-700 text-rose-100 font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">G#m7</button>
+        <button type="button" onclick="tapTipaChord('A#m7')" class="bg-rose-700 text-rose-100 font-bold text-[10px] py-2.5 rounded-xl active:scale-90 transition">A#m7</button>
+      </div>
     </div>
 
   </div>
+
+  <!-- Action Controls -->
+  <div class="flex items-center justify-between gap-3 pt-2">
+    <button type="button" onclick="undoTipaChord()" class="bg-slate-800 text-amber-400 border border-slate-700 text-xs font-bold px-4 py-3 rounded-xl flex items-center gap-1.5 active:scale-95 transition">
+      <i class="fa-solid fa-rotate-left"></i> Undo
+    </button>
+    <div class="flex gap-2">
+      <button type="button" onclick="toggleTipaEditMode(false)" class="bg-slate-800 text-slate-300 text-xs font-bold px-4 py-3 rounded-xl hover:bg-slate-700 transition">Exit</button>
+      <button type="button" onclick="saveTipaProject()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-6 py-3 rounded-xl shadow-lg active:scale-95 transition">Save</button>
+    </div>
+  </div>
+
 </div>
         `;
     }
