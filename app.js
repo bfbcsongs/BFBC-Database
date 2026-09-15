@@ -198,6 +198,82 @@ function renderSongs(songsToRender, titleText) {
                     <div id="yt-preview-${song.id}" class="relative cursor-pointer group" onclick="loadYTPlayer('${song.id}', '${ytId}')">
                         <img src="${thumbnailUrl}" class="w-full h-40 object-cover opacity-80 group-hover:opacity-100 transition-all">
                         <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
+// ==========================================
+// RENDER SONGS (COMPACT TITLE LIST VIEW)
+// ==========================================
+function renderSongs(songsToRender, titleText) {
+    listHeader.textContent = titleText;
+    
+    let sortedSongs = [...songsToRender];
+
+    if (inNewFolderView) {
+        sortedSongs.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+    } else {
+        sortedSongs.sort((a, b) => a.title.localeCompare(b.title));
+    }
+
+    songCount.textContent = `${sortedSongs.length} song${sortedSongs.length === 1 ? '' : 's'} found`;
+
+    if (sortedSongs.length === 0) {
+        songsList.innerHTML = `<p class="text-center text-slate-500 py-8">No songs found in this view.</p>`;
+        return;
+    }
+
+    songsList.innerHTML = sortedSongs.map(song => {
+        const ytId = extractYouTubeID(song.video_url) || extractYouTubeID(song.audio_url);
+        const thumbnailUrl = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
+        const songIsUnapproved = isUnapproved(song);
+
+        return `
+        <div class="bg-slate-800 border border-slate-700/70 rounded-xl overflow-hidden transition-all mb-2">
+            <!-- TITLE ROW (Click to Expand / Collapse Details) -->
+            <div onclick="toggleSongAccordion('${song.id}')" class="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition-colors">
+                <div class="flex items-center gap-3 overflow-hidden">
+                    <div class="w-8 h-8 rounded-lg ${songIsUnapproved ? 'bg-amber-500/20 text-amber-400' : 'bg-indigo-600/20 text-indigo-400'} flex items-center justify-center font-bold text-xs shrink-0">
+                        <i class="fa-solid ${songIsUnapproved ? 'fa-clock' : 'fa-music'}"></i>
+                    </div>
+                    <div class="truncate">
+                        <h3 class="font-bold text-sm text-white truncate">${song.title}</h3>
+                        <span class="text-[10px] font-semibold text-slate-400 bg-slate-900 px-2 py-0.5 rounded-full mt-0.5 inline-block">${song.category}</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    ${songIsUnapproved ? `<span class="text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full font-bold">Unapproved</span>` : ''}
+                    <i id="accordion-icon-${song.id}" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200"></i>
+                </div>
+            </div>
+
+            <!-- EXPANDABLE DETAILS -->
+            <div id="accordion-details-${song.id}" class="hidden p-4 border-t border-slate-700/60 bg-slate-900/40 space-y-3">
+                <div class="flex items-center gap-2 flex-wrap">
+                    ${ytId ? `
+                    <button onclick="loadYTPlayer('${song.id}', '${ytId}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-600/30 rounded-lg text-xs font-semibold transition-all cursor-pointer">
+                        <i class="fa-solid fa-play"></i> Play Audio
+                    </button>` : ''}
+
+                    <button onclick="toggleLyrics('${song.id}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600/20 text-sky-400 hover:bg-sky-600 hover:text-white border border-sky-600/30 rounded-lg text-xs font-semibold transition-all cursor-pointer">
+                        <i class="fa-solid fa-align-left"></i> Lyrics
+                    </button>
+
+                    <!-- NEW CHORDS STUDIO BUTTON -->
+                    <button onclick="toggleTimestampStudio('${song.id}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/20 text-purple-400 hover:bg-purple-600 hover:text-white border border-purple-600/30 rounded-lg text-xs font-semibold transition-all cursor-pointer">
+                        <i class="fa-solid fa-guitar"></i> Chords Studio
+                    </button>
+
+                    <button onclick="handleEditTap('${song.id}')" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white border border-slate-600 rounded-lg text-xs font-semibold transition-all cursor-pointer">
+                        <i class="fa-solid fa-pen"></i> Edit
+                    </button>
+
+                    <button onclick="handleThumbsUpTap('${song.id}')" title="Tap 5 times to approve" class="flex items-center justify-center p-2 bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-slate-900 border border-amber-500/30 rounded-lg transition-all cursor-pointer">
+                        <i class="fa-solid fa-thumbs-up text-sm"></i>
+                    </button>
+                </div>
+
+                ${ytId ? `
+                <div class="mt-2 rounded-lg overflow-hidden border border-slate-700 bg-slate-900">
+                    <div id="yt-preview-${song.id}" class="relative cursor-pointer group" onclick="loadYTPlayer('${song.id}', '${ytId}')">
+                        <img src="${thumbnailUrl}" class="w-full h-40 object-cover opacity-80 group-hover:opacity-100 transition-all">
+                        <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
                             <div class="px-4 py-2 bg-rose-600/90 text-white text-xs font-bold rounded-full flex items-center gap-2 shadow-lg group-hover:scale-105 transition-all">
                                 <i class="fa-solid fa-play"></i> Tap to Play Audio Reference
                             </div>
@@ -206,6 +282,15 @@ function renderSongs(songsToRender, titleText) {
                     <div id="yt-player-${song.id}" class="hidden"></div>
                 </div>
                 ` : ''}
+
+                <!-- TIMESTAMP MENU CONTAINER -->
+                <div id="timestamp-studio-${song.id}" class="hidden pt-3 border-t border-purple-500/30 bg-purple-950/20 p-3 rounded-lg border border-purple-800/40 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-purple-300"><i class="fa-solid fa-clock-rotate-left"></i> Timestamp & Chord Menu</span>
+                        <span class="text-[10px] text-purple-400 bg-purple-900/50 px-2 py-0.5 rounded">Ready to sync</span>
+                    </div>
+                    <p class="text-xs text-slate-400">Timestamp controls will load here for this song.</p>
+                </div>
 
                 <div id="lyrics-container-${song.id}" class="hidden pt-3 border-t border-slate-700/60 text-slate-300 text-sm whitespace-pre-line font-mono bg-slate-900/50 p-3 rounded-lg border border-slate-800">
                     ${song.lyrics || 'No lyrics provided.'}
@@ -221,10 +306,19 @@ window.toggleSongAccordion = function(id) {
     const icon = document.getElementById(`accordion-icon-${id}`);
     if (details) details.classList.toggle('hidden');
     if (icon) icon.classList.toggle('rotate-180');
-};window.toggleLyrics = function(id) {
+};
+
+window.toggleLyrics = function(id) {
     const lyricsElement = document.getElementById(`lyrics-container-${id}`);
     if (lyricsElement) {
         lyricsElement.classList.toggle('hidden');
+    }
+};
+
+window.toggleTimestampStudio = function(id) {
+    const studioElement = document.getElementById(`timestamp-studio-${id}`);
+    if (studioElement) {
+        studioElement.classList.toggle('hidden');
     }
 };
 
