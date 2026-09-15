@@ -589,75 +589,70 @@ window.addEventListener('DOMContentLoaded', async () => {
     await fetchSongs();
     filterAndShowSongs();
 });
-            
-// Local in-memory store for active session recorded chords per song
-let activeSongChords = {};
+ // ==========================================
+// CHORD & TIMESTAMP STUDIO HELPERS
+// ==========================================
+var activeSongChords = {};
+
+window.toggleTimestampStudio = function(id) {
+    var studioElement = document.getElementById('timestamp-studio-' + id);
+    if (studioElement) {
+        studioElement.classList.toggle('hidden');
+    }
+};
 
 window.stampChord = function(songId, chordLabel) {
     if (!activeSongChords[songId]) {
         activeSongChords[songId] = [];
     }
+    var list = activeSongChords[songId];
+    var lastTime = list.length > 0 ? list[list.length - 1].time + 2 : 0;
 
-    // Try to get playback time if iframe player is active, else default to manual order timestamp
-    const iframe = document.querySelector(`#yt-player-${songId} iframe`);
-    let currentTime = 0;
-    
-    // Auto-increment standard timestamp sequence if audio isn't active
-    const lastTimestamp = activeSongChords[songId].length > 0 
-        ? activeSongChords[songId][activeSongChords[songId].length - 1].time + 2 
-        : 0;
-
-    const timestamp = {
-        time: lastTimestamp,
-        chord: chordLabel
-    };
-
-    activeSongChords[songId].push(timestamp);
-    renderChordTimeline(songId);
+    list.push({ time: lastTime, chord: chordLabel });
+    window.renderChordTimeline(songId);
 };
 
 window.renderChordTimeline = function(songId) {
-    const timelineContainer = document.getElementById(`chord-timeline-${songId}`);
+    var timelineContainer = document.getElementById('chord-timeline-' + songId);
     if (!timelineContainer) return;
 
-    const list = activeSongChords[songId] || [];
-
+    var list = activeSongChords[songId] || [];
     if (list.length === 0) {
-        timelineContainer.innerHTML = `<span class="text-slate-500 italic text-[11px]">No timestamps recorded yet. Play reference audio & tap a chord above!</span>`;
+        timelineContainer.innerHTML = '<span class="text-slate-500 italic text-[11px]">No timestamps recorded yet. Play reference audio & tap a chord above!</span>';
         return;
     }
 
-    timelineContainer.innerHTML = list.map((item, idx) => `
-        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-900/60 border border-purple-500/40 text-purple-200 rounded text-xs font-bold">
-            ${item.chord} <span class="text-[10px] text-purple-400 font-normal">(${item.time}s)</span>
-        </span>
-    `).join('');
+    timelineContainer.innerHTML = list.map(function(item) {
+        return '<span class="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-900/60 border border-purple-500/40 text-purple-200 rounded text-xs font-bold">' +
+            item.chord + ' <span class="text-[10px] text-purple-400 font-normal">(' + item.time + 's)</span>' +
+        '</span>';
+    }).join('');
 };
 
 window.clearSongChords = function(songId) {
     activeSongChords[songId] = [];
-    renderChordTimeline(songId);
+    window.renderChordTimeline(songId);
 };
 
 window.saveSongChordsToDB = async function(songId) {
-    const list = activeSongChords[songId] || [];
+    var list = activeSongChords[songId] || [];
     if (list.length === 0) {
         alert('No chords stamped to save!');
         return;
     }
 
-    if (db) {
+    if (typeof db !== 'undefined' && db) {
         try {
-            const { error } = await db.from('songs_sandbox').update({ chords: list }).eq('id', songId);
-            if (error) {
-                alert('Save failed: ' + error.message);
+            var res = await db.from('songs_sandbox').update({ chords: list }).eq('id', songId);
+            if (res.error) {
+                alert('Save failed: ' + res.error.message);
             } else {
-                alert(`Successfully saved ${list.length} chords for this song!`);
+                alert('Successfully saved ' + list.length + ' chords!');
             }
         } catch (err) {
-            alert('Database connection error: ' + err.message);
+            alert('Database error: ' + err.message);
         }
     } else {
-        alert('Saved locally in-memory (Supabase client inactive).');
+        alert('Saved in memory (DB disconnected).');
     }
-};
+};       
