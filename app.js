@@ -85,6 +85,57 @@ window.loadYTPlayer = function(songId, videoId) {
                 allowfullscreen 
                 class="rounded-lg border border-rose-500/30">
             </iframe>
+            <!-- TIPA INLINE PANEL -->
+<div id="tipa-inline-container" class="mt-3 bg-slate-900 border border-slate-700/80 rounded-xl p-3 space-y-3">
+  <div class="space-y-1.5">
+    <div class="flex items-center justify-between text-[11px] font-bold text-indigo-400 border-b border-slate-800 pb-1">
+      <span class="flex items-center gap-1.5"><i class="fa-solid fa-sliders"></i> TIPA Play Bar</span>
+      <span id="tipa-inline-time" class="font-mono text-slate-400">00:00.0</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <div id="tipa-inline-chord" class="bg-indigo-950 border border-indigo-500/50 text-indigo-400 font-mono text-xl font-black px-3 py-1 rounded-lg shrink-0 min-w-[45px] text-center">--</div>
+      <div id="tipa-inline-bar" class="flex gap-1.5 overflow-x-auto py-1 text-xs font-mono w-full min-h-[40px] items-center">
+        <span class="text-slate-500 text-[11px]">No registered chords yet. Click Edit to map.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="border-t border-slate-800 pt-2">
+    <div id="tipa-main-ctrl">
+      <button type="button" onclick="toggleTipaEditMode(true)" class="w-full bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5">
+        <i class="fa-solid fa-pen-to-square"></i> Edit TIPA Chords
+      </button>
+    </div>
+
+    <div id="tipa-edit-ctrl" class="hidden space-y-2">
+      <div class="grid grid-cols-7 gap-1 bg-slate-800/60 p-2 rounded-lg border border-slate-700/50">
+        <button type="button" onclick="tapTipaChord('C')" class="bg-indigo-600 text-white font-bold text-xs py-1.5 rounded active:scale-90">C</button>
+        <button type="button" onclick="tapTipaChord('D')" class="bg-indigo-600 text-white font-bold text-xs py-1.5 rounded active:scale-90">D</button>
+        <button type="button" onclick="tapTipaChord('E')" class="bg-indigo-600 text-white font-bold text-xs py-1.5 rounded active:scale-90">E</button>
+        <button type="button" onclick="tapTipaChord('F')" class="bg-indigo-600 text-white font-bold text-xs py-1.5 rounded active:scale-90">F</button>
+        <button type="button" onclick="tapTipaChord('G')" class="bg-indigo-600 text-white font-bold text-xs py-1.5 rounded active:scale-90">G</button>
+        <button type="button" onclick="tapTipaChord('A')" class="bg-indigo-600 text-white font-bold text-xs py-1.5 rounded active:scale-90">A</button>
+        <button type="button" onclick="tapTipaChord('B')" class="bg-indigo-600 text-white font-bold text-xs py-1.5 rounded active:scale-90">B</button>
+
+        <button type="button" onclick="tapTipaChord('Cm')" class="bg-slate-700 text-slate-200 font-bold text-xs py-1 rounded active:scale-90">Cm</button>
+        <button type="button" onclick="tapTipaChord('Dm')" class="bg-slate-700 text-slate-200 font-bold text-xs py-1 rounded active:scale-90">Dm</button>
+        <button type="button" onclick="tapTipaChord('Em')" class="bg-slate-700 text-slate-200 font-bold text-xs py-1 rounded active:scale-90">Em</button>
+        <button type="button" onclick="tapTipaChord('Fm')" class="bg-slate-700 text-slate-200 font-bold text-xs py-1 rounded active:scale-90">Fm</button>
+        <button type="button" onclick="tapTipaChord('Gm')" class="bg-slate-700 text-slate-200 font-bold text-xs py-1 rounded active:scale-90">Gm</button>
+        <button type="button" onclick="tapTipaChord('Am')" class="bg-slate-700 text-slate-200 font-bold text-xs py-1 rounded active:scale-90">Am</button>
+        <button type="button" onclick="tapTipaChord('Bm')" class="bg-slate-700 text-slate-200 font-bold text-xs py-1 rounded active:scale-90">Bm</button>
+      </div>
+
+      <div class="flex items-center justify-between gap-2 pt-1">
+        <button type="button" onclick="undoTipaChord()" class="bg-slate-800 text-amber-400 border border-slate-700 text-[11px] font-bold px-3 py-1.5 rounded-lg">Undo</button>
+        <div class="flex gap-1.5">
+          <button type="button" onclick="toggleTipaEditMode(false)" class="bg-slate-800 text-slate-300 text-[11px] font-bold px-3 py-1.5 rounded-lg">Exit</button>
+          <button type="button" onclick="saveTipaProject()" class="bg-emerald-600 text-white text-[11px] font-bold px-4 py-1.5 rounded-lg">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
         `;
     }
 };
